@@ -1,10 +1,12 @@
-  import {createClient} from '@supabase/supabase-js'
+let supabase = null;
 
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-  const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLIC_KEY
+if (import.meta.env.VITE_USE_SUPABASE === "true") {
+  const { createClient } = await import("@supabase/supabase-js");
 
-  
-  export const supabase = createClient(
-    supabaseUrl,
-    supabaseKey
-  )
+  supabase = createClient(
+    import.meta.env.VITE_SUPABASE_URL,
+    import.meta.env.VITE_SUPABASE_ANON_KEY
+  );
+}
+
+export { supabase };

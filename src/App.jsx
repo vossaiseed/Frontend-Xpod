@@ -15,6 +15,11 @@ import Leads from "./pages/LeadManager/Leads.jsx";
 import SalesTeam from "./pages/LeadManager/SalesTeam.jsx";
 import Alerts from "./pages/LeadManager/Alerts.jsx";
 import LeadData from "./pages/LeadManager/LeadData.jsx";
+import PendingReview from "./pages/admin/PendingReview.jsx";
+import AssignedLeads from "./pages/admin/AssignedLeads.jsx";
+import ConversionRequests from "./pages/admin/ConversionRequests.jsx";
+import GeneralLeads from "./pages/admin/GeneralLeads.jsx";
+import PartnerDashboard from "./pages/partner/PartnerDashboard.jsx";
 
 // Placeholder for admin sub-pages not built yet.
 const EmptyPage = ({ title }) => <h1 className="text-2xl font-bold">{title}</h1>;
@@ -46,13 +51,13 @@ const App = () => {
       >
 
         <Route index element={<AdminDashboard />} />
-        <Route path="pending-review" element={<EmptyPage title="Pending Review" />} />
-        <Route path="assigned-leads" element={<EmptyPage title="Assigned Leads" />} />
-        <Route path="conversion-requests" element={<EmptyPage title="Conversion Requests" />} />
+        <Route path="pending-review" element={<PendingReview/>} />
+        <Route path="assigned-leads" element={ <AssignedLeads/>} />
+        <Route path="conversion-requests" element={<ConversionRequests/>} />
         <Route path="partners" element={<Partners />} />
         <Route path="lead-managers" element={<LeadManager />} />
         <Route path="sales-team" element={<SalesMan />} />
-        <Route path="general-leads" element={<EmptyPage title="General Leads" />} />
+        <Route path="general-leads" element={<GeneralLeads/>} />
         <Route path="trash" element={<EmptyPage title="Trash" />} />
         <Route path="settings" element={<EmptyPage title="Settings" />} />
         <Route path="lead-pool" element={<EmptyPage title="Lead Pool" />} />
@@ -114,7 +119,7 @@ const App = () => {
         path="/PartnerDashboard"
         element={
           <ProtectedRoute allow={["partner"]}>
-            <ComingSoon title="Partner Dashboard" />
+            <PartnerDashboard/>
           </ProtectedRoute>
         }
       />

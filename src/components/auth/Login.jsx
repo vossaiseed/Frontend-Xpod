@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../supabase/supabaseConnection.js";
 import { homeForRole } from "../../auth/roles.js";
 
 const Login = () => {
@@ -21,33 +20,36 @@ const Login = () => {
     try {
       const cleanPhone = phone.trim();
 
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("id,email,role,phone,status")
-        .eq("phone", cleanPhone)
-        .single();
-
-      if (profileError || !profile) {
-        setErrorMsg("Phone number not found");
-        return;
-      }
-
-      if (profile.status === "inactive") {
-        setErrorMsg("Your account is inactive");
-        return;
-      }
-
-      const { error } = await supabase.auth.signInWithPassword({
-        email: profile.email,
-        password,
+      // ✅ NOW CALL BACKEND (NOT SUPABASE DIRECTLY)
+      const res = await fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          phone,
+          password,
+        }),
       });
 
-      if (error) {
-        setErrorMsg("Invalid phone number or password");
+      const data = await res.json();
+
+      if (!res.ok) {
+        setErrorMsg(data.message || "Login failed");
         return;
       }
 
-      navigate(homeForRole(profile.role));
+      // ✅ store session + role
+      localStorage.setItem("session", JSON.stringify(data.session));
+      localStorage.setItem("role", data.role);
+      localStorage.setItem("user", JSON.stringify(data.user));
+
+      // ✅ redirect based on role
+      const role = data.role || "staff";
+
+      localStorage.setItem("role", role);
+
+      navigate(homeForRole(role));
     } catch (err) {
       setErrorMsg("Something went wrong. Please try again.");
     } finally {

@@ -1,43 +1,48 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { supabase } from "../supabase/supabaseConnection.js";
 
 /**
- * Route guard.
- *
- * - No session            -> redirect to /login
- * - Session but wrong role -> redirect to /login
- * - Authorised             -> render children
- *
- * Props:
- *  - allow:    string[] of permitted roles (empty = any authenticated user)
- *  - children: protected element tree
+ * Route guard (backend-based)
  */
 const ProtectedRoute = ({ allow = [], children }) => {
-  const [status, setStatus] = useState("checking"); // checking | ok | denied
+  const [status, setStatus] = useState("checking");
 
   useEffect(() => {
     let active = true;
 
-    (async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+    const checkAuth = async () => {
+      try {
+        const session = JSON.parse(localStorage.getItem("session"));
+        const role = localStorage.getItem("role");
 
-      if (!user) {
-        if (active) setStatus("denied");
-        return;
+        if (!session || !role) {
+          setStatus("denied");
+          return;
+        }
+
+        const res = await fetch("http://localhost:5000/api/auth/verify", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
+
+        const data = await res.json();
+
+        if (!res.ok || !data.valid) {
+          setStatus("denied");
+          return;
+        }
+
+        const ok = allow.length === 0 || allow.includes(role);
+
+        setStatus(ok ? "ok" : "denied");
+      } catch (err) {
+        setStatus("denied");
       }
+    };
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-
-      const ok = allow.length === 0 || allow.includes(profile?.role);
-      if (active) setStatus(ok ? "ok" : "denied");
-    })();
+    checkAuth();
 
     return () => {
       active = false;
@@ -47,12 +52,14 @@ const ProtectedRoute = ({ allow = [], children }) => {
   if (status === "checking") {
     return (
       <div className="grid min-h-screen place-items-center bg-[#f8fafc] text-sm text-gray-400">
-        Loading…
+        Loading...
       </div>
     );
   }
 
-  if (status === "denied") return <Navigate to="/login" replace />;
+  if (status === "denied") {
+    return <Navigate to="/login" replace />;
+  }
 
   return children;
 };

@@ -1,37 +1,46 @@
-import { supabase } from "/src/components/supabase/supabaseConnection.js";
-
-/**
- * Generic Supabase CRUD resource factory.
- *
- * Every CRM module (partners, sales_team, lead_managers, leads, …) can share
- * this instead of repeating query boilerplate.
- *
- *   const partners = createResource("partners");
- *   const { data, error } = await partners.list();
- *
- * Options:
- *  - select:      columns/relations to fetch (default "*")
- *  - orderColumn: default "created_at"
- *  - ascending:   default false (newest first)
- */
-export function createResource(
-  table,
-  { select = "*", orderColumn = "created_at", ascending = false } = {}
-) {
+export function createResource(baseUrl) {
   return {
-    table,
+    list: async () => {
+      const res = await fetch(baseUrl);
+      const data = await res.json();
+      return { data, error: res.ok ? null : data };
+    },
 
-    list: () =>
-      supabase.from(table).select(select).order(orderColumn, { ascending }),
+    getById: async (id) => {
+      const res = await fetch(`${baseUrl}/${id}`);
+      const data = await res.json();
+      return { data, error: res.ok ? null : data };
+    },
 
-    getById: (id) => supabase.from(table).select(select).eq("id", id).single(),
+    create: async (payload) => {
+      const res = await fetch(baseUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-    create: (payload) =>
-      supabase.from(table).insert(payload).select().single(),
+      const data = await res.json();
+      return { data, error: res.ok ? null : data };
+    },
 
-    update: (id, payload) =>
-      supabase.from(table).update(payload).eq("id", id).select().single(),
+    update: async (id, payload) => {
+      const res = await fetch(`${baseUrl}/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-    remove: (id) => supabase.from(table).delete().eq("id", id),
+      const data = await res.json();
+      return { data, error: res.ok ? null : data };
+    },
+
+    remove: async (id) => {
+      const res = await fetch(`${baseUrl}/${id}`, {
+        method: "DELETE",
+      });
+
+      const data = await res.json();
+      return { data, error: res.ok ? null : data };
+    },
   };
 }

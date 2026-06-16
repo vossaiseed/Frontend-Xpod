@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { X, LogOut } from "lucide-react";
 import { menuItems, ADMIN_BASE } from "./menuConfig.js";
 
@@ -19,6 +19,12 @@ const Sidebar = ({ open, onClose, user, onLogout }) => {
   const displayName = user?.name || "Admin";
   const role = user?.role || "admin";
   const initial = displayName.charAt(0).toUpperCase();
+
+  const navigate=useNavigate()
+
+  const handleLogout=()=>{
+    navigate('/login')
+  }
 
   return (
     <aside
@@ -88,7 +94,7 @@ const Sidebar = ({ open, onClose, user, onLogout }) => {
         </div>
 
         <button
-          onClick={onLogout}
+          onClick={handleLogout}
           className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 px-3 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600"
         >
           <LogOut size={16} />

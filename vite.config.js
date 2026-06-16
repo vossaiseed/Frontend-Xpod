@@ -5,4 +5,4 @@ export default defineConfig({
   plugins: [
     tailwindcss(),
   ],
-})npm install @tailwindcss/vite
+}) 
