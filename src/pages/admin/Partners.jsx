@@ -3,8 +3,6 @@ import { Plus, Pencil, Eye, EyeOff, Star, Power, KeyRound, Trash2, MapPin, Mail,
 
 import { createResource } from "../../api/resource.js";
 import { useCrud } from "../../hooks/useCrud.js";
-import { supabase } from "../../components/supabase/supabaseConnection.js";
-import { signupClient } from "../../components/supabase/signupClient.js";
 import Modal from "../../components/admin/Modal.jsx";
 import ConfirmDialog from "../../components/admin/ConfirmDialog.jsx";
 import FormField from "../../components/admin/FormField.jsx";
@@ -41,35 +39,35 @@ const EMPTY_FORM = {
 
 const PHOTO_BUCKET = "partner-photos";
 // Upload a file to Supabase Storage and return its public URL.
-const uploadPhoto = async (file) => {
-  if (!file) return "";
+// const uploadPhoto = async (file) => {
+//   if (!file) return "";
 
-  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-  const fileName = `${Date.now()}-${Math.random()
-    .toString(36)
-    .substring(2)}.${ext}`;
+//   const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+//   const fileName = `${Date.now()}-${Math.random()
+//     .toString(36)
+//     .substring(2)}.${ext}`;
 
-  const filePath = `partners/${fileName}`;
+//   const filePath = `partners/${fileName}`;
 
-  const { data, error } = await supabase.storage
-    .from(PHOTO_BUCKET)
-    .upload(filePath, file, {
-      cacheControl: "3600",
-      upsert: false,
-      contentType: file.type,
-    });
+//   const { data, error } = await supabase.storage
+//     .from(PHOTO_BUCKET)
+//     .upload(filePath, file, {
+//       cacheControl: "3600",
+//       upsert: false,
+//       contentType: file.type,
+//     });
 
-  console.log("UPLOAD DATA:", data);
-  console.log("UPLOAD ERROR:", error);
+//   console.log("UPLOAD DATA:", data);
+//   console.log("UPLOAD ERROR:", error);
 
-  if (error) throw error;
+//   if (error) throw error;
 
-  const { data: urlData } = supabase.storage
-    .from(PHOTO_BUCKET)
-    .getPublicUrl(filePath);
+//   const { data: urlData } = supabase.storage
+//     .from(PHOTO_BUCKET)
+//     .getPublicUrl(filePath);
 
-  return urlData.publicUrl;
-};
+//   return urlData.publicUrl;
+// };
 
 /* ── small UI pieces ──────────────────────────────────────────────────── */
 
@@ -236,8 +234,8 @@ const Partners = () => {
   const [formError, setFormError] = useState("");
 
   // Photo upload state
-  const [photoFile, setPhotoFile] = useState(null);
-  const [photoPreview, setPhotoPreview] = useState("");
+  // const [photoFile, setPhotoFile] = useState(null);
+  // const [photoPreview, setPhotoPreview] = useState("");
 
   const [toDelete, setToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -285,18 +283,18 @@ const Partners = () => {
   const handleChange = (e) =>
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
 
-  const handlePhotoChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setPhotoFile(file);
-    setPhotoPreview(URL.createObjectURL(file));
-  };
+  // const handlePhotoChange = (e) => {
+  //   const file = e.target.files?.[0];
+  //   if (!file) return;
+  //   setPhotoFile(file);
+  //   setPhotoPreview(URL.createObjectURL(file));
+  // };
 
-  const clearPhoto = () => {
-    setPhotoFile(null);
-    setPhotoPreview("");
-    setForm((f) => ({ ...f, photo_url: "" }));
-  };
+  // const clearPhoto = () => {
+  //   setPhotoFile(null);
+  //   setPhotoPreview("");
+  //   setForm((f) => ({ ...f, photo_url: "" }));
+  // };
 
   /* ── create / edit submit ──
    * CREATE: signs up an auth user (session-less client) -> uploads photo ->
@@ -304,92 +302,86 @@ const Partners = () => {
    *         `profiles` via the handle_new_user trigger (metadata).
    * EDIT:   uploads a new photo if chosen -> updates the row (existing `update`).
    */
+  // const handleSubmit = async (e) => {
+  //   e.preventDefault();
+  //   setSaving(true);
+  //   setFormError("");
+
+  //   try {
+  //     let photoUrl = form.photo_url;
+
+  //     if (photoFile) {
+  //       photoUrl = await uploadPhoto(photoFile); // you can keep this OR move to backend later
+  //     }
+
+  //     const payload = {
+  //       ...form,
+  //       photo_url: photoUrl,
+  //     };
+
+  //     const url = editing
+  //       ? `/api/partners/${editing.id}`
+  //       : `/api/partners`;
+
+  //     const method = editing ? "PUT" : "POST";
+
+  //     const res = await fetch(url, {
+  //       method,
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //         Authorization: `Bearer ${localStorage.getItem("token")}`,
+  //       },
+  //       body: JSON.stringify(payload),
+  //     });
+
+  //     const data = await res.json();
+
+  //     if (!res.ok) {
+  //       setFormError(data.error || "Something went wrong");
+  //       return;
+  //     }
+
+  //     setFormOpen(false);
+  //   } catch (err) {
+  //     setFormError(err.message);
+  //   } finally {
+  //     setSaving(false);
+  //   }
+  // };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    setFormError("");
 
     try {
-      let photoUrl = form.photo_url;
+      const url = editing
+        ? `/api/partners/${editing.id}`
+        : `/api/partners`;
 
-      if (photoFile) {
-        photoUrl = await uploadPhoto(photoFile);
-      }
+      const method = editing ? "PUT" : "POST";
 
-      let userId = editing?.user_id || null;
+      const res = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify(form),
+      });
 
-      // CREATE ONLY
-      if (!editing) {
-        const { data: authData, error: authError } =
-          await signupClient.auth.signUp({
-            email: form.email,
-            password: form.password,
-            options: {
-              data: {
-                name: form.name,
-                phone: form.phone,
-                role: "partner",
-              },
-            },
-          });
+      const data = await res.json();
 
-        if (authError) {
-          setFormError(authError.message);
-          return;
-        }
-
-        userId = authData.user?.id;
-
-        // Insert into profiles table
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .upsert({
-            id: userId,
-            name: form.name,
-            email: form.email,
-            phone: form.phone.trim(),
-            role: "partner",
-            status: "active",
-          });
-
-        if (profileError) {
-          setFormError(profileError.message);
-          return;
-        }
-      }
-
-      // Insert/update partners table
-      const payload = {
-        user_id: userId,
-        name: form.name,
-        company: form.company,
-        email: form.email,
-        phone: form.phone,
-        location: form.location,
-        state: form.state,
-        temp_password: form.password,
-        photo_url: photoUrl,
-        partner_type: form.partner_type,
-        royalty_percent: Number(form.royalty_percent) || 0,
-        status: form.status || "active",
-      };
-
-      const res = editing
-        ? await update(editing.id, payload)
-        : await create(payload);
-
-      if (res.error) {
-        setFormError(res.error.message);
+      if (!res.ok) {
+        alert(data.error);
         return;
       }
 
       setFormOpen(false);
-    } catch (err) {
-      setFormError(err.message || "Something went wrong");
     } finally {
       setSaving(false);
     }
   };
+
   const handleDelete = async () => {
     setDeleting(true);
     const res = await remove(toDelete.id);
@@ -410,7 +402,7 @@ const Partners = () => {
   const handleUpgrade = (row) => flash(`Upgrade tier for "${row.name}" — coming soon.`);
   const handleResetPwd = (row) =>
     flash(`Password reset for ${row.email || row.name} — coming soon.`);
- 
+
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -509,7 +501,7 @@ const Partners = () => {
           />
 
           {/* Row 6: Photo upload with preview */}
-          <div>
+          {/* <div>
             <span className="mb-1 block text-sm font-medium text-gray-700">Partner Photo</span>
             <div className="flex items-center gap-4">
               {photoPreview ? (
@@ -538,7 +530,7 @@ const Partners = () => {
                 </button>
               )}
             </div>
-          </div>
+          </div> */}
 
           {/* Submit */}
           <button
