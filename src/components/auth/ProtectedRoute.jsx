@@ -20,7 +20,7 @@ const ProtectedRoute = ({ allow = [], children }) => {
           return;
         }
 
-        const res = await fetch("http://localhost:5000/api/auth/verify", {
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/verify`, {
           method: "GET",
           headers: {
             Authorization: `Bearer ${session.access_token}`,

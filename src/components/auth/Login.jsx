@@ -19,6 +19,8 @@ const Login = () => {
 
     try {
       const cleanPhone = phone.trim();
+      console.log(import.meta.env.VITE_BACKEND_URL);
+
 
       // NOW CALL BACKEND (NOT SUPABASE DIRECTLY)
       const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/login`, {
@@ -30,7 +32,7 @@ const Login = () => {
           phone,
           password,
         }),
-        
+
       });
       console.log(import.meta.env.VITE_BACKEND_URL);
 
