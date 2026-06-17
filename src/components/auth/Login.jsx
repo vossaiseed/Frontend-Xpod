@@ -20,8 +20,8 @@ const Login = () => {
     try {
       const cleanPhone = phone.trim();
 
-      // ✅ NOW CALL BACKEND (NOT SUPABASE DIRECTLY)
-      const res = await fetch("http://localhost:5000/api/auth/login", {
+      // NOW CALL BACKEND (NOT SUPABASE DIRECTLY)
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -30,7 +30,9 @@ const Login = () => {
           phone,
           password,
         }),
+        
       });
+      console.log(import.meta.env.VITE_BACKEND_URL);
 
       const data = await res.json();
 
