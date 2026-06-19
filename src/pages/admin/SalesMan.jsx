@@ -1,53 +1,54 @@
 import React, { useMemo, useState } from 'react'
-import { Delete, Edit, Eye, FileType, ImageIcon, LocateIcon, Lock, Mail, Pencil, Upload, UserPlus, View } from 'lucide-react';
+import { Delete, Edit, Eye, EyeOff, FileType, ImageIcon, LocateIcon, Lock, Mail, Pencil, Upload, UserPlus, View } from 'lucide-react';
 
 import { useCrud } from '../../hooks/useCrud';
 import { createResource } from '../../api/resource';
-import { supabase } from '../../components/supabase/supabaseConnection';
+
 import Modal from '../../components/admin/Modal';
 import FormField from '../../components/admin/FormField';
 import ConfirmDialog from '../../components/admin/ConfirmDialog';
-import { signupClient } from '../../components/supabase/signupClient';
+
 import LanguageSelector from '../../components/admin/LanguageSelector';
 import LeadPermissionSelector from '../../components/admin/LeadPermissionSelector';
+import PhotoUpload from '../../components/admin/PhotoUpload';
 
 
 
-const PHOTO_BUCKET = "SalesMan"
+// const PHOTO_BUCKET = "SalesMan"
 
-const makeLoginEmail = (phone) => {
-  return `${phone}@SalesMan.com`;
-};
+// const makeLoginEmail = (phone) => {
+//   return `${phone}@SalesMan.com`;
+// };
 
-const uploadPhoto = async (file) => {
-  if (!file) return ''
+// const uploadPhoto = async (file) => {
+//   if (!file) return ''
 
-  const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
-  const fileName = `${Date.now()}-${Math.random()
-    .toString(36)
-    .substring(2)
-    }.${ext}`
+//   const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+//   const fileName = `${Date.now()}-${Math.random()
+//     .toString(36)
+//     .substring(2)
+//     }.${ext}`
 
-  const filePath = `SalesMan/${fileName}`
+//   const filePath = `SalesMan/${fileName}`
 
-  const { error } = await supabase.storage
-    .from(PHOTO_BUCKET)
-    .upload(filePath, file, {
-      cacheControl: '3600',
-      upsert: false,
-      contentType: file.type
-    })
+//   const { error } = await supabase.storage
+//     .from(PHOTO_BUCKET)
+//     .upload(filePath, file, {
+//       cacheControl: '3600',
+//       upsert: false,
+//       contentType: file.type
+//     })
   
-  console.log("UPLOAD ERROR:", error);
+//   console.log("UPLOAD ERROR:", error);
 
-  if (error) throw error
+//   if (error) throw error
 
-  const { data } = supabase.storage
-    .from(PHOTO_BUCKET)
-    .getPublicUrl(filePath)
+//   const { data } = supabase.storage
+//     .from(PHOTO_BUCKET)
+//     .getPublicUrl(filePath)
 
-  return data.publicUrl
-}
+//   return data.publicUrl
+// }
 
 const EmptyForm = {
   name: "",
@@ -106,6 +107,7 @@ const ActionButton = ({
 const SalesManCard = ({ salesman, onEdit, onView, onResetPwd, onDelete }) => {
   const photo = salesman.photo_url || salesman.avatar_url
   const initial = (salesman.name?.charAt(0) || '?').toUpperCase()
+  const [showPwd, setShowPwd] = useState(false)
 
   return (
     <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm hover:shadow-md">
@@ -147,7 +149,7 @@ const SalesManCard = ({ salesman, onEdit, onView, onResetPwd, onDelete }) => {
               </p>
             )}
             <span className="mt-1 inline-block rounded-2xl bg-[#ccfbf1] px-2 py-1 text-xs text-[#0f746c]">
-              Lead Manager
+              {salesman.role || "Sales Person"}
             </span>
           </div>
         </div>
@@ -159,6 +161,22 @@ const SalesManCard = ({ salesman, onEdit, onView, onResetPwd, onDelete }) => {
           <ActionButton icon={Delete} label="Delete" tone="red" onClick={() => onDelete(salesman)} />
         </div>
       </div>
+
+      {/* Password reveal */}
+      <div className="mt-3 flex items-center gap-2 border-t border-gray-100 pt-3 text-sm text-gray-500">
+        <span>Pwd:</span>
+        <span className="tracking-widest">
+          {showPwd ? salesman.temp_password || "Not set" : "••••••"}
+        </span>
+        <button
+          type="button"
+          onClick={() => setShowPwd((s) => !s)}
+          className="text-gray-400 hover:text-gray-600"
+          aria-label={showPwd ? "Hide password" : "Show password"}
+        >
+          {showPwd ? <EyeOff size={14} /> : <Eye size={14} />}
+        </button>
+      </div>
     </div>
   );
 }
@@ -166,8 +184,8 @@ const SalesManCard = ({ salesman, onEdit, onView, onResetPwd, onDelete }) => {
 
 
 const SalesMan = () => {
-  const resource = useMemo(() => createResource("sales_team"), []);
-  const { rows, loading, error, create, update, remove } = useCrud(resource);
+  const resource = useMemo(() => createResource("sales-team"), []);
+  const { rows, loading, error, create, update, remove, action } = useCrud(resource);
   const [formOpen, setFormOpen] = useState('')
   const [editing, setEditing] = useState('')
   const [form, setForm] = useState(EmptyForm)
@@ -211,6 +229,11 @@ const SalesMan = () => {
       specific_partners: row.specific_partners || [],
       lead_sources: row.lead_sources || [],
 
+      lead_permissions: row.lead_permissions || {
+        access_type: "full",
+        allowed_categories: [],
+      },
+
       role: row.role || "Official Sales Person",
 
       password: "",
@@ -251,58 +274,8 @@ const SalesMan = () => {
     setFormError("");
 
     try {
-      let photoUrl = form.photo_url;
-
-      if (photoFile) {
-        photoUrl = await uploadPhoto(photoFile);
-      }
-
-      let authUserId = editing?.user_id || null;
-      let loginEmail = editing?.login_email || makeLoginEmail(form.phone);
-
-      if (!editing) {
-        const { data, error } = await signupClient.auth.signUp({
-          email: loginEmail,
-          password: form.password,
-          options: {
-            data: {
-              name: form.name,
-              phone: form.phone,
-              role: "salesMan",
-            },
-          },
-        });
-
-        console.log("SIGNUP DATA:", data);
-        console.log("SIGNUP ERROR:", error);
-
-        if (error) {
-          setFormError(error.message);
-          setSaving(false);
-          return;
-        }
-
-        authUserId = data.user?.id;
-
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .upsert({
-            id: authUserId,
-            name: form.name,
-            email: loginEmail,
-            phone: form.phone.trim(),
-            role: "salesman",
-            status: "active",
-          });
-
-
-        console.log("PROFILE ERROR:", profileError);
-        if (profileError) {
-          setFormError(profileError.message);
-          return;
-        }
-      }
-
+      // The backend creates the Supabase auth user + profiles row (so they can
+      // log in with phone + password) and links user_id/login_email itself.
       const payload = {
         name: form.name,
         phone: form.phone,
@@ -314,30 +287,27 @@ const SalesMan = () => {
         max_lead_capacity: form.max_lead_capacity,
 
         languages: form.languages,
-
         restricted_access: form.restricted_access,
 
         partner_categories: form.partner_categories,
         specific_partners: form.specific_partners,
         lead_sources: form.lead_sources,
         lead_permissions: form.lead_permissions,
+
         role: form.role,
+        photo_url: form.photo_url,
+      };
 
-        photo_url: photoUrl,
-
-        login_email: loginEmail,
-        user_id: authUserId,
-      }
+      // Only send a password when one was entered (required on create; on edit
+      // it changes the login password).
+      if (form.password) payload.password = form.password;
 
       const res = editing
         ? await update(editing.id, payload)
         : await create(payload);
 
-      console.log("CREATE RESULT:", res);
-      console.log("TABLE ERROR:", res.error);
-
-      if (res.error) {
-        setFormError(res.error.message);
+      if (res?.error) {
+        setFormError(res.error.message || "Something went wrong");
         return;
       }
 
@@ -364,8 +334,13 @@ const SalesMan = () => {
     }
   }
 
-  const handleResetPwd = (manager) => {
-    alert(`Reset password for ${manager.phone} coming soon`)
+  const handleResetPwd = async (salesman) => {
+    const password = window.prompt(
+      `Set a login password for ${salesman.name} (they log in with phone ${salesman.phone}):`
+    );
+    if (!password) return;
+    const res = await action(salesman.id, "reset-password", { password });
+    alert(res?.error ? res.error.message : `Login enabled for ${salesman.name}.`);
   }
 
   return (
@@ -393,7 +368,7 @@ const SalesMan = () => {
           ))}
         </div>
       ) : rows.length === 0 ? (
-        <div className="rounded-2xl border border-gray-100 bg-white p-10 text-center text-gray-400 shadow-sm">No lead manager yet</div>
+        <div className="rounded-2xl border border-gray-100 bg-white p-10 text-center text-gray-400 shadow-sm">No sales people yet. Add your first one.</div>
       ) : (
         <div className='p-5 grid grid-cols-1 md:grid-cols-2 gap-5'>
           {rows.map((salesman) => (
@@ -413,9 +388,9 @@ const SalesMan = () => {
         open={formOpen}
         onClose={() => setFormOpen(false)}
         size="lg"
-        title={editing ? "Edit Partner" : "Create Partner Account"}
+        title={editing ? "Edit Sales Person" : "Create Sales Person"}
       >
-        <form id="partner-form" onSubmit={handleSubmit} className="space-y-4 md:w-115">
+        <form id="salesman-form" onSubmit={handleSubmit} className="space-y-4 md:w-115">
           {formError && (
             <div className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600">{formError}</div>
           )}
@@ -506,37 +481,12 @@ const SalesMan = () => {
               ]}
             />
           </div>
-          {/* Row 6: Photo upload with preview */}
-          <div>
-            <span className="mb-1 block text-sm font-medium text-gray-700">Partner Photo</span>
-            <div className="flex items-center gap-4">
-              {photoPreview ? (
-                <img
-                  src={photoPreview}
-                  alt="Preview"
-                  className="h-16 w-16 rounded-full border border-gray-200 object-cover"
-                />
-              ) : (
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 text-gray-400">
-                  <ImageIcon size={22} />
-                </div>
-              )}
-
-              <label className="cursor-pointer rounded-xl border border-[#fde68a] px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50">
-                <span className="flex items-center gap-2 ">
-                  <Upload size={15} />
-                  {photoPreview ? "Change photo" : "Upload photo"}
-                </span>
-                <input type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
-              </label>
-
-              {photoPreview && (
-                <button type="button" onClick={clearPhoto} className="text-sm text-red-600 hover:underline">
-                  Remove
-                </button>
-              )}
-            </div>
-          </div>
+          {/* Row 6: Photo upload */}
+          <PhotoUpload
+            folder="sales"
+            value={form.photo_url}
+            onChange={(url) => setForm((f) => ({ ...f, photo_url: url }))}
+          />
 
           {/* Submit */}
           <button
@@ -551,7 +501,7 @@ const SalesMan = () => {
       <Modal
         open={!!viewing}
         onClose={() => setViewing(null)}
-        title="Lead Manager Details"
+        title="Sales Person Details"
       >
         {viewing && (
           <dl className="space-y-3 text-sm">
@@ -563,7 +513,8 @@ const SalesMan = () => {
                 "Location",
                 [viewing.location, viewing.state].filter(Boolean).join(", "),
               ],
-              ["Role", "Lead Manager"],
+              ["Max Lead Capacity", viewing.max_lead_capacity],
+              ["Role", viewing.role || "Sales Person"],
             ].map(([label, value]) => (
               <div key={label} className="flex justify-between gap-4">
                 <dt className="text-gray-500">{label}</dt>
@@ -581,6 +532,8 @@ const SalesMan = () => {
         onCancel={() => setToDelete(null)}
         onConfirm={handleDelete}
         loading={deleting}
+        title="Delete sales person"
+        message={`Delete "${toDelete?.name}"? This cannot be undone.`}
       />
     </div>
   )

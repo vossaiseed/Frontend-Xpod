@@ -19,6 +19,7 @@ const FormField = ({
   options = [],
   required = false,
   placeholder,
+  className = "",
   ...rest
 }) => (
   <label className="block">
@@ -35,7 +36,7 @@ const FormField = ({
         required={required}
         placeholder={placeholder}
         rows={3}
-        className={`${baseInput} resize-y`}
+        className={`${baseInput} ${className}`}
         {...rest}
       />
     ) : type === "select" ? (
@@ -44,7 +45,7 @@ const FormField = ({
         value={value ?? ""}
         onChange={onChange}
         required={required}
-        className={baseInput}
+        className={`${baseInput} ${className}`}
         {...rest}
       >
         {options.map((o) => (
@@ -61,7 +62,7 @@ const FormField = ({
         onChange={onChange}
         required={required}
         placeholder={placeholder}
-        className={baseInput}
+        className={`${baseInput} ${className}`}
         {...rest}
       />
     )}

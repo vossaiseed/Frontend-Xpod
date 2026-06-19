@@ -1,9 +1,10 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { X, LogOut } from "lucide-react";
 import { menuItems, Lead_BASE } from "./LmenuConfig.js"
+import { useAuth } from "../../context/AuthContext.jsx";
 
 /**
- * Admin sidebar.
+ * Lead Manager sidebar.
  *
  * Responsive behaviour:
  *  - Desktop (lg+): fixed, always visible.
@@ -12,20 +13,15 @@ import { menuItems, Lead_BASE } from "./LmenuConfig.js"
  * Props:
  *  - open:     boolean  — drawer visibility on small screens
  *  - onClose:  fn       — close the drawer
- *  - user:     object   — { name, role } from the profiles table
- *  - onLogout: fn       — sign the user out
+ * (user / logout come from AuthContext)
  */
-const Sidebar = ({ open, onClose, user, onLogout }) => {
+const Sidebar = ({ open, onClose }) => {
+    const { user, logout } = useAuth();
     const displayName = user?.name || "Admin";
     const role = user?.role || "admin";
     const initial = displayName.charAt(0).toUpperCase();
 
-
-    const navigate = useNavigate()
-
-    const handleLogout = () => {
-        navigate('/login')
-    }
+    const handleLogout = () => logout();
 
 
     return (

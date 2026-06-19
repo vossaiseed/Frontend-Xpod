@@ -1,14 +1,16 @@
 import { Menu, Plus } from "lucide-react";
+import { useAuth } from "../../context/AuthContext.jsx";
 
 /**
  * Sticky top bar.
  *
  * Props:
  *  - title:      string — current page title
- *  - user:       object — { name, role }
  *  - onMenuClick:fn     — open the mobile sidebar drawer
+ * (user comes from AuthContext)
  */
-const Topbar = ({ title, user, onMenuClick }) => {
+const Topbar = ({ title, onMenuClick }) => {
+    const { user } = useAuth();
     const displayName = user?.name || "Admin";
     const role = user?.role || "admin";
     const initial = displayName.charAt(0).toUpperCase();

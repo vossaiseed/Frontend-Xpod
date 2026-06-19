@@ -2,200 +2,167 @@ import { ClipboardList, Flame, GitPullRequest, BarChart3 } from "lucide-react";
 
 import DashboardCard from "../../components/admin/DashboardCard.jsx";
 import SectionCard from "../../components/admin/SectionCard.jsx";
-import { useDashboardData, formatINR } from "../../hooks/useDashboardData.js";
 
-/* ── Small presentational helpers ─────────────────────────────────────── */
+/* ── Mock Data (UI ONLY MODE) ───────────────────────────── */
+
+const formatINR = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
+
+const stats = {
+  totalLeads: 120,
+  converted: 45,
+  pendingReview: 12,
+  conversionRequests: 5,
+  totalRevenue: 850000,
+  totalRoyalty: 120000,
+};
+
+const pendingReview = [
+  { id: 1, name: "Rahul Kumar", source: "Website", date: "12 Jun" },
+  { id: 2, name: "Anjali S", source: "Instagram", date: "11 Jun" },
+];
+
+const hotLeads = [
+  { id: 1, name: "John Doe", value: 120000, score: 92 },
+  { id: 2, name: "Sara Ali", value: 95000, score: 85 },
+];
+
+const conversionRequests = [
+  { id: 1, name: "Lead A", agent: "Agent 1", status: "pending" },
+  { id: 2, name: "Lead B", agent: "Agent 2", status: "pending" },
+];
+
+const salesCapacity = [
+  { id: 1, name: "Alex", assigned: 6, capacity: 10 },
+  { id: 2, name: "John", assigned: 3, capacity: 8 },
+];
+
+const partners = [
+  { id: 1, name: "Partner A", revenue: 300000, royalty: 45000 },
+  { id: 2, name: "Partner B", revenue: 250000, royalty: 30000 },
+];
+
+/* ── Helpers ───────────────────────────────────────────── */
 
 const EmptyState = ({ children }) => (
   <p className="text-sm text-gray-400">{children}</p>
 );
 
 const Avatar = ({ name, color = "bg-amber-100 text-amber-700" }) => (
-  <div
-    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${color}`}
-  >
+  <div className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold ${color}`}>
     {(name?.charAt(0) || "?").toUpperCase()}
   </div>
 );
 
-const CapacityRow = ({ name, assigned = 0, capacity = 10 }) => {
-  const pct = capacity > 0 ? Math.min(100, (assigned / capacity) * 100) : 0;
+const CapacityRow = ({ name, assigned, capacity }) => {
+  const pct = (assigned / capacity) * 100;
+
   return (
     <div className="space-y-1.5">
-      <div className="flex items-center justify-between gap-3">
-        <span className="truncate text-sm font-medium text-gray-800">{name}</span>
-        <span className="shrink-0 text-xs text-gray-500">
-          {assigned}/{capacity}
-        </span>
+      <div className="flex justify-between text-sm">
+        <span className="font-medium">{name}</span>
+        <span className="text-xs text-gray-500">{assigned}/{capacity}</span>
       </div>
-      <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
-        <div className="h-full rounded-full bg-green-500" style={{ width: `${pct}%` }} />
+      <div className="h-2 w-full rounded-full bg-gray-100">
+        <div className="h-2 rounded-full bg-green-500" style={{ width: `${pct}%` }} />
       </div>
     </div>
   );
 };
 
-const PartnerCard = ({ name, revenue = 0, royalty = 0 }) => (
-  <div className="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50/60 px-4 py-3">
-    <div className="flex min-w-0 items-center gap-3">
+const PartnerCard = ({ name, revenue, royalty }) => (
+  <div className="flex justify-between rounded-xl border bg-gray-50 px-4 py-3">
+    <div className="flex items-center gap-3">
       <Avatar name={name} />
-      <div className="min-w-0">
-        <p className="truncate text-sm font-semibold text-gray-900">{name}</p>
+      <div>
+        <p className="font-semibold">{name}</p>
         <p className="text-xs text-gray-500">{formatINR(revenue)}</p>
       </div>
     </div>
-    <div className="shrink-0 text-right">
-      <p className="text-sm font-semibold text-gray-900">{formatINR(royalty)}</p>
+    <div className="text-right">
+      <p className="font-semibold">{formatINR(royalty)}</p>
       <p className="text-xs text-gray-400">royalty</p>
     </div>
   </div>
 );
 
-/* ── Dashboard ────────────────────────────────────────────────────────── */
+/* ── Dashboard ───────────────────────────────────────────── */
 
 const AdminDashboard = () => {
-  const {
-    stats,
-    pendingReview,
-    hotLeads,
-    conversionRequests,
-    salesCapacity,
-    partners,
-  } = useDashboardData();
-
   return (
     <div className="space-y-6">
-      {/* Stat cards */}
+
+      {/* Stats */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <DashboardCard label="Total Leads" value={stats.totalLeads} accent="slate" />
-        <DashboardCard label="Converted" value={stats.converted} accent="green" />
-        <DashboardCard label="Pending Review" value={stats.pendingReview} accent="orange" />
-        <DashboardCard label="Conv. Requests" value={stats.conversionRequests} accent="purple" />
+        <DashboardCard label="Total Leads" value={stats.totalLeads} />
+        <DashboardCard label="Converted" value={stats.converted} />
+        <DashboardCard label="Pending Review" value={stats.pendingReview} />
+        <DashboardCard label="Conversion Requests" value={stats.conversionRequests} />
       </div>
 
-      {/* Revenue cards */}
+      {/* Revenue */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <DashboardCard
-          label="Total Revenue"
-          value={formatINR(stats.totalRevenue)}
-          accent="slate"
-          labelPosition="top"
-        />
-        <DashboardCard
-          label="Total Royalty Paid"
-          value={formatINR(stats.totalRoyalty)}
-          accent="slate"
-          labelPosition="top"
-        />
+        <DashboardCard label="Total Revenue" value={formatINR(stats.totalRevenue)} />
+        <DashboardCard label="Total Royalty" value={formatINR(stats.totalRoyalty)} />
       </div>
 
       {/* Sections */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Pending Review */}
+
+        {/* Pending */}
         <SectionCard title="Pending Review" icon={ClipboardList}>
-          {pendingReview.length ? (
-            <div className="space-y-1">
-              {pendingReview.map((lead) => (
-                <div
-                  key={lead.id}
-                  className="flex items-center justify-between rounded-xl px-3 py-2.5 text-sm hover:bg-gray-50"
-                >
-                  <div>
-                    <p className="font-medium text-gray-900">{lead.name}</p>
-                    <p className="text-xs text-gray-500">{lead.source}</p>
-                  </div>
-                  <span className="text-xs text-gray-400">{lead.date}</span>
-                </div>
-              ))}
+          {pendingReview.length ? pendingReview.map((l) => (
+            <div key={l.id} className="flex justify-between px-3 py-2 hover:bg-gray-50 rounded">
+              <div>
+                <p className="font-medium">{l.name}</p>
+                <p className="text-xs text-gray-500">{l.source}</p>
+              </div>
+              <span className="text-xs text-gray-400">{l.date}</span>
             </div>
-          ) : (
-            <EmptyState>All caught up!</EmptyState>
-          )}
+          )) : <EmptyState>No data</EmptyState>}
         </SectionCard>
 
-        {/* Hot Leads */}
+        {/* Hot leads */}
         <SectionCard title="Hot Leads" icon={Flame}>
-          {hotLeads.length ? (
-            <div className="space-y-1">
-              {hotLeads.map((lead) => (
-                <div
-                  key={lead.id}
-                  className="flex items-center justify-between rounded-xl px-3 py-2.5 text-sm hover:bg-gray-50"
-                >
-                  <div>
-                    <p className="font-medium text-gray-900">{lead.name}</p>
-                    <p className="text-xs text-gray-500">Est. {formatINR(lead.value)}</p>
-                  </div>
-                  <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-600">
-                    {lead.score}
-                  </span>
-                </div>
-              ))}
+          {hotLeads.map((l) => (
+            <div key={l.id} className="flex justify-between px-3 py-2 hover:bg-gray-50 rounded">
+              <div>
+                <p className="font-medium">{l.name}</p>
+                <p className="text-xs text-gray-500">{formatINR(l.value)}</p>
+              </div>
+              <span className="text-xs text-red-500 font-bold">{l.score}</span>
             </div>
-          ) : (
-            <EmptyState>No hot leads right now.</EmptyState>
-          )}
+          ))}
         </SectionCard>
 
-        {/* Conversion Requests */}
+        {/* Conversion */}
         <SectionCard title="Conversion Requests" icon={GitPullRequest}>
-          {conversionRequests.length ? (
-            <div className="space-y-1">
-              {conversionRequests.map((req) => (
-                <div
-                  key={req.id}
-                  className="flex items-center justify-between rounded-xl px-3 py-2.5 text-sm hover:bg-gray-50"
-                >
-                  <div>
-                    <p className="font-medium text-gray-900">{req.name}</p>
-                    <p className="text-xs text-gray-500">by {req.agent}</p>
-                  </div>
-                  <span className="rounded-full bg-purple-50 px-2 py-0.5 text-xs font-semibold text-purple-600">
-                    {req.status}
-                  </span>
-                </div>
-              ))}
+          {conversionRequests.map((r) => (
+            <div key={r.id} className="flex justify-between px-3 py-2 hover:bg-gray-50 rounded">
+              <div>
+                <p className="font-medium">{r.name}</p>
+                <p className="text-xs text-gray-500">{r.agent}</p>
+              </div>
+              <span className="text-xs text-purple-500">{r.status}</span>
             </div>
-          ) : (
-            <EmptyState>No pending requests.</EmptyState>
-          )}
+          ))}
         </SectionCard>
 
-        {/* Sales Capacity */}
+        {/* Capacity */}
         <SectionCard title="Sales Capacity" icon={BarChart3}>
-          {salesCapacity.length ? (
-            <div className="space-y-4">
-              {salesCapacity.map((rep) => (
-                <CapacityRow
-                  key={rep.id}
-                  name={rep.name}
-                  assigned={rep.assigned}
-                  capacity={rep.capacity}
-                />
-              ))}
-            </div>
-          ) : (
-            <EmptyState>No sales team members yet.</EmptyState>
-          )}
+          {salesCapacity.map((s) => (
+            <CapacityRow key={s.id} {...s} />
+          ))}
         </SectionCard>
 
-        {/* Partner Performance (full width) */}
-        <SectionCard title="Partner Performance" className="lg:col-span-2">
-          {partners.length ? (
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {partners.map((p) => (
-                <PartnerCard
-                  key={p.id}
-                  name={p.name}
-                  revenue={p.revenue}
-                  royalty={p.royalty}
-                />
-              ))}
-            </div>
-          ) : (
-            <EmptyState>No partners yet.</EmptyState>
-          )}
+        {/* Partners */}
+        <SectionCard title="Partners" className="lg:col-span-2">
+          <div className="grid md:grid-cols-2 gap-3">
+            {partners.map((p) => (
+              <PartnerCard key={p.id} {...p} />
+            ))}
+          </div>
         </SectionCard>
+
       </div>
     </div>
   );

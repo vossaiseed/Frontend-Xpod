@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import Modal from "../../components/admin/Modal";
-import FormField from "../../components/admin/FormField";
-import { useLeads } from "../../context/LeadContext.jsx";
+import Modal from "../admin/Modal.jsx";
+import FormField from "../admin/FormField.jsx";
+import { createLead } from "../../services/LeadServices.js";
 import { uploadFile } from "../../api/upload.js";
 
 const LANGUAGES = [
@@ -16,6 +16,43 @@ const LANGUAGES = [
     "Punjabi",
 ];
 
+const EMPTY_FORM = {
+    name: "",
+    phone: "",
+    location: "",
+    state: "",
+    whatsapp: "",
+    email: "",
+    urgency: "",
+    designation: "",
+    leadSource: "",
+    language: "",
+    units: "",
+    model: "",
+    notes: "",
+};
+
+// Map the form onto the real `leads` columns (source / whatsapp / is_vip).
+// partner_id is NOT sent — the backend stamps it from the logged-in partner.
+const toPayload = (form) => {
+    return {
+        name: form.name,
+        phone: form.phone,
+        whatsapp: form.whatsapp,
+        location: form.location,
+        state: form.state,
+        email: form.email,
+        urgency: form.urgency,
+        designation: form.designation,
+        language: form.language,
+        units: form.units,
+        model: form.model,
+        notes: form.notes,
+        source: form.leadSource || "",
+        is_vip: form.designation === "VIP",
+    };
+};
+
 const blobToDataUrl = (blob) =>
     new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -24,9 +61,8 @@ const blobToDataUrl = (blob) =>
         reader.readAsDataURL(blob);
     });
 
-const AddLeadModal = () => {
-    // Form + save flow live in LeadContext (no prop drilling).
-    const { formOpen, form, setForm, editing, closeForm, saveLead } = useLeads();
+const PartnerAddLeadModel = ({ openForm, setOpenForm, partner, onSaved }) => {
+    const [form, setForm] = useState(EMPTY_FORM);
 
     const [isRecording, setIsRecording] = useState(false);
     const [audioBlob, setAudioBlob] = useState(null);
@@ -35,8 +71,6 @@ const AddLeadModal = () => {
 
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
-
-    const isEditing = Boolean(editing && editing.id);
 
     const handleChange = (e) =>
         setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
@@ -47,25 +81,45 @@ const AddLeadModal = () => {
         setAudioBlob(null);
     };
 
+    // Start each open with a clean form.
+    useEffect(() => {
+        if (openForm) {
+            setForm(EMPTY_FORM);
+            setError("");
+            resetAudio();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [openForm]);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setSaving(true);
         setError("");
 
         try {
-            // Persist the voice note (if any) and pass its URL to the save flow.
-            const extra = {};
+            const payload = toPayload(form);
+
+            // The lead's source is this partner (shown in the form as the
+            // "Lead source" row); the backend also stamps partner_id.
+            if (partner?.name) payload.source = partner.name;
+
+            // Persist the voice note (if any).
             if (audioBlob) {
                 const dataUrl = await blobToDataUrl(audioBlob);
-                extra.audio_url = await uploadFile(dataUrl, "lead-audio");
+                payload.audio_url = await uploadFile(dataUrl, "lead-audio");
             }
 
-            const res = await saveLead(extra);
-            if (res?.error) {
-                setError(res.error.message || "Something went wrong");
+            const res = await createLead(payload);
+            // createLead resolves to { data } on success, or { message } on error.
+            if (!res?.data) {
+                setError(res?.message || "Something went wrong");
                 return;
             }
+
             resetAudio();
+            setForm(EMPTY_FORM);
+            onSaved?.();          // refresh the dashboard
+            setOpenForm(false);
         } catch (err) {
             setError(err.message || "Something went wrong");
         } finally {
@@ -123,9 +177,9 @@ const AddLeadModal = () => {
 
     return (
         <Modal
-            open={formOpen}
-            onClose={closeForm}
-            title={isEditing ? "Edit Lead" : "Add New Lead"}
+            open={openForm}
+            onClose={() => setOpenForm(false)}
+            title="Add New Lead"
             size="md"
         >
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -142,7 +196,6 @@ const AddLeadModal = () => {
                     to the Lead Pool.
                 </p>
 
-
                 <FormField
                     label="Phone Number"
                     name="phone"
@@ -151,7 +204,6 @@ const AddLeadModal = () => {
                     placeholder="Phone Number"
                     required
                 />
-
 
                 <FormField
                     label="Client Name"
@@ -226,20 +278,10 @@ const AddLeadModal = () => {
                     ]}
                 />
 
-                <FormField
-                    label="Lead Source"
-                    name="leadSource"
-                    type="select"
-                    value={form.leadSource}
-                    onChange={handleChange}
-                    options={[
-                        { value: "", label: "— Select source —" },
-                        { value: "Social media", label: "Social media" },
-                        { value: "Exhibition(hyd)", label: "Exhibition(hyd)" },
-                        { value: "Direct call and message", label: "Direct call and message" },
-                        { value: "Referral", label: "Referral" },
-                    ]}
-                />
+                <div className="flex justify-between shadow rounded-2xl p-3">
+                    <p>Lead source</p>
+                    {partner?.name} ({partner?.partner_type})
+                </div>
 
                 <FormField
                     label="Primary Language"
@@ -309,7 +351,7 @@ const AddLeadModal = () => {
                     disabled={saving}
                     className="w-full rounded-2xl bg-[#d97706] py-4 text-lg font-semibold text-white disabled:opacity-60"
                 >
-                    {saving ? "Saving…" : editing ? "Update Lead" : "Save Lead"}
+                    {saving ? "Saving…" : "Save Lead"}
                 </button>
 
             </form>
@@ -317,4 +359,4 @@ const AddLeadModal = () => {
     );
 };
 
-export default AddLeadModal;
+export default PartnerAddLeadModel;

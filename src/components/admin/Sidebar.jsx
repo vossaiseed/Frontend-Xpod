@@ -1,6 +1,7 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { X, LogOut } from "lucide-react";
 import { menuItems, ADMIN_BASE } from "./menuConfig.js";
+import { useAuth } from "../../context/AuthContext.jsx";
 
 /**
  * Admin sidebar.
@@ -12,19 +13,15 @@ import { menuItems, ADMIN_BASE } from "./menuConfig.js";
  * Props:
  *  - open:     boolean  — drawer visibility on small screens
  *  - onClose:  fn       — close the drawer
- *  - user:     object   — { name, role } from the profiles table
- *  - onLogout: fn       — sign the user out
+ * (user / logout come from AuthContext)
  */
-const Sidebar = ({ open, onClose, user, onLogout }) => {
-  const displayName = user?.name || "Admin";
-  const role = user?.role || "admin";
+const Sidebar = ({ open, onClose }) => {
+  const { user, profile, logout } = useAuth();
+  const displayName = profile?.name || user?.name || "Admin";
+  const role = profile?.role || user?.role || "admin";
   const initial = displayName.charAt(0).toUpperCase();
 
-  const navigate=useNavigate()
-
-  const handleLogout=()=>{
-    navigate('/login')
-  }
+  const handleLogout = () => logout();
 
   return (
     <aside

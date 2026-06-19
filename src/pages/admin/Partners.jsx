@@ -6,6 +6,7 @@ import { useCrud } from "../../hooks/useCrud.js";
 import Modal from "../../components/admin/Modal.jsx";
 import ConfirmDialog from "../../components/admin/ConfirmDialog.jsx";
 import FormField from "../../components/admin/FormField.jsx";
+import PhotoUpload from "../../components/admin/PhotoUpload.jsx";
 
 /* ── helpers ──────────────────────────────────────────────────────────── */
 
@@ -224,8 +225,11 @@ const PartnerCard = ({
 
 const Partners = () => {
   // Memoise so useCrud's effect is stable. (unchanged backend wiring)
-  const resource = useMemo(() => createResource("partners"), []);
-  const { rows, loading, error, create, update, remove } = useCrud(resource);
+  const resource = useMemo(
+    () => createResource("partners"),
+    []
+  );
+  const { rows, loading, error, create, update, remove, action } = useCrud(resource);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -239,7 +243,8 @@ const Partners = () => {
 
   const [toDelete, setToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
-
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState("");
   const [viewing, setViewing] = useState(null);
   const [busyId, setBusyId] = useState(null);
   const [notice, setNotice] = useState("");
@@ -283,96 +288,18 @@ const Partners = () => {
   const handleChange = (e) =>
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
 
-  // const handlePhotoChange = (e) => {
-  //   const file = e.target.files?.[0];
-  //   if (!file) return;
-  //   setPhotoFile(file);
-  //   setPhotoPreview(URL.createObjectURL(file));
-  // };
-
-  // const clearPhoto = () => {
-  //   setPhotoFile(null);
-  //   setPhotoPreview("");
-  //   setForm((f) => ({ ...f, photo_url: "" }));
-  // };
-
-  /* ── create / edit submit ──
-   * CREATE: signs up an auth user (session-less client) -> uploads photo ->
-   *         inserts the partner row (existing `create`). Role/name land in
-   *         `profiles` via the handle_new_user trigger (metadata).
-   * EDIT:   uploads a new photo if chosen -> updates the row (existing `update`).
-   */
-  // const handleSubmit = async (e) => {
-  //   e.preventDefault();
-  //   setSaving(true);
-  //   setFormError("");
-
-  //   try {
-  //     let photoUrl = form.photo_url;
-
-  //     if (photoFile) {
-  //       photoUrl = await uploadPhoto(photoFile); // you can keep this OR move to backend later
-  //     }
-
-  //     const payload = {
-  //       ...form,
-  //       photo_url: photoUrl,
-  //     };
-
-  //     const url = editing
-  //       ? `/api/partners/${editing.id}`
-  //       : `/api/partners`;
-
-  //     const method = editing ? "PUT" : "POST";
-
-  //     const res = await fetch(url, {
-  //       method,
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //         Authorization: `Bearer ${localStorage.getItem("token")}`,
-  //       },
-  //       body: JSON.stringify(payload),
-  //     });
-
-  //     const data = await res.json();
-
-  //     if (!res.ok) {
-  //       setFormError(data.error || "Something went wrong");
-  //       return;
-  //     }
-
-  //     setFormOpen(false);
-  //   } catch (err) {
-  //     setFormError(err.message);
-  //   } finally {
-  //     setSaving(false);
-  //   }
-  // };
-
+ 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
 
     try {
-      const url = editing
-        ? `/api/partners/${editing.id}`
-        : `/api/partners`;
+      const res = editing
+        ? await update(editing.id, form)
+        : await create(form);
 
-      const method = editing ? "PUT" : "POST";
-
-      const res = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify(form),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        alert(data.error);
+      if (res.error) {
+        alert(res.error.message || "Something went wrong");
         return;
       }
 
@@ -400,8 +327,14 @@ const Partners = () => {
   };
 
   const handleUpgrade = (row) => flash(`Upgrade tier for "${row.name}" — coming soon.`);
-  const handleResetPwd = (row) =>
-    flash(`Password reset for ${row.email || row.name} — coming soon.`);
+  const handleResetPwd = async (row) => {
+    const password = window.prompt(
+      `Set a login password for ${row.name} (they log in with phone ${row.phone}):`
+    );
+    if (!password) return;
+    const res = await action(row.id, "reset-password", { password });
+    flash(res?.error ? res.error.message : `Login enabled for ${row.name}.`);
+  };
 
   return (
     <div className="space-y-5">
@@ -500,37 +433,13 @@ const Partners = () => {
             options={PARTNER_TYPES}
           />
 
-          {/* Row 6: Photo upload with preview */}
-          {/* <div>
-            <span className="mb-1 block text-sm font-medium text-gray-700">Partner Photo</span>
-            <div className="flex items-center gap-4">
-              {photoPreview ? (
-                <img
-                  src={photoPreview}
-                  alt="Preview"
-                  className="h-16 w-16 rounded-full border border-gray-200 object-cover"
-                />
-              ) : (
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 text-gray-400">
-                  <ImageIcon size={22} />
-                </div>
-              )}
-
-              <label className="cursor-pointer rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50">
-                <span className="flex items-center gap-2">
-                  <Upload size={15} />
-                  {photoPreview ? "Change photo" : "Upload photo"}
-                </span>
-                <input type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
-              </label>
-
-              {photoPreview && (
-                <button type="button" onClick={clearPhoto} className="text-sm text-red-600 hover:underline">
-                  Remove
-                </button>
-              )}
-            </div>
-          </div> */}
+          {/* Row 6: Photo upload */}
+          <PhotoUpload
+            label="Partner Photo"
+            folder="partners"
+            value={form.photo_url}
+            onChange={(url) => setForm((f) => ({ ...f, photo_url: url }))}
+          />
 
           {/* Submit */}
           <button

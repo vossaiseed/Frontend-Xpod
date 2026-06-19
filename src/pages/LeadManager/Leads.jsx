@@ -1,13 +1,8 @@
 import { Edit } from "lucide-react";
+import { useLeads } from "../../context/LeadContext.jsx";
 
-const Leads = ({
-    leads = [],
-    setEditing,
-    setForm,
-    setFormOpen,
-    search,
-    setSearch,
-}) => {
+const Leads = () => {
+    const { leads = [], search, setSearch, openEdit } = useLeads();
 
     const filteredLeads = leads.filter((lead) => {
         const value = search.toLowerCase();
@@ -20,11 +15,7 @@ const Leads = ({
         );
     });
 
-    const handleEdit = (lead) => {
-        setEditing(lead);
-        setForm(lead);
-        setFormOpen(true);
-    };
+    const handleEdit = (lead) => openEdit(lead);
 
     return (
         <div className="space-y-6">

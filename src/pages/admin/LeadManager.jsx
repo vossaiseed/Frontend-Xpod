@@ -1,82 +1,35 @@
-import React, { useMemo, useState } from 'react'
-import { Delete, Edit, Eye, FileType, ImageIcon, LocateIcon, Lock, Mail, Pencil, Upload, UserPlus, View } from 'lucide-react';
+import { useMemo, useState } from "react";
+import { Eye, EyeOff, LocateIcon, Lock, Pencil, Trash2, UserPlus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-import { useCrud } from '../../hooks/useCrud';
-import { createResource } from '../../api/resource';
-import { supabase } from '../../components/supabase/supabaseConnection';
-import Modal from '../../components/admin/Modal';
-import FormField from '../../components/admin/FormField';
-import ConfirmDialog from '../../components/admin/ConfirmDialog';
-import { signupClient } from '../../components/supabase/signupClient';
-import { useNavigate } from 'react-router-dom';
+import { useCrud } from "../../hooks/useCrud.js";
+import { createResource } from "../../api/resource.js";
+import Modal from "../../components/admin/Modal.jsx";
+import FormField from "../../components/admin/FormField.jsx";
+import ConfirmDialog from "../../components/admin/ConfirmDialog.jsx";
+import PhotoUpload from "../../components/admin/PhotoUpload.jsx";
 
-
-
-
-const PHOTO_BUCKET = "Lead-manager-photos"
-
-const makeLoginEmail = (phone) => {
-  return `${phone}@leadmanager.com`;
+const EMPTY_FORM = {
+  name: "",
+  phone: "",
+  email: "",
+  location: "",
+  state: "",
+  password: "",
+  photo_url: "",
 };
 
-const uploadPhoto = async (file) => {
-  if (!file) return ''
-
-  const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
-  const fileName = `${Date.now()}-${Math.random()
-    .toString(36)
-    .substring(2)
-    }.${ext}`
-
-  const filePath = `lead-manager/${fileName}`
-
-  const { error } = await supabase.storage
-    .from(PHOTO_BUCKET)
-    .upload(filePath, file, {
-      cacheControl: '3600',
-      upsert: false,
-      contentType: file.type
-    })
-
-  if (error) throw error
-
-  const { data } = supabase.storage
-    .from(PHOTO_BUCKET)
-    .getPublicUrl(filePath)
-
-  return data.publicUrl
-}
-
-
-const EmptyForm = {
-  name: '',
-  phone: '',
-  email: '',
-  location: '',
-  state: '',
-  password: '',
-  photo_url: '',
-}
-
-const ActionButton = ({
-  icon: Icon,
-  label,
-  onClick,
-  tone = "gray",
-  disabled,
-  className = "",
-}) => {
+const ActionButton = ({ icon: Icon, label, onClick, tone = "gray", disabled }) => {
   const tones = {
     gray: "border-gray-200 text-gray-600 hover:bg-gray-50",
     blue: "border-blue-200 text-blue-600 hover:bg-blue-50",
     red: "border-red-200 text-red-600 hover:bg-red-50",
   };
-
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${tones[tone]} ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${tones[tone]}`}
     >
       <Icon size={14} />
       {label}
@@ -84,23 +37,17 @@ const ActionButton = ({
   );
 };
 
-
-const LeadManagerCard = ({ manager, onEdit, onView, onResetPwd, onDelete }) => {
-  const photo = manager.photo_url || manager.avatar_url
-  const initial = (manager.name?.charAt(0) || '?').toUpperCase()
-
+const LeadManagerCard = ({ manager, onEdit, onView, onOpen, onResetPwd, onDelete }) => {
+  const photo = manager.photo_url || manager.avatar_url;
+  const initial = (manager.name?.charAt(0) || "?").toUpperCase();
+  const [showPwd, setShowPwd] = useState(false);
 
   return (
     <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm hover:shadow-md">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-
         <div className="flex items-center gap-4">
           {photo ? (
-            <img
-              src={photo}
-              alt={manager.name}
-              className="h-12 w-12 shrink-0 rounded-full object-cover"
-            />
+            <img src={photo} alt={manager.name} className="h-12 w-12 shrink-0 rounded-full object-cover" />
           ) : (
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-teal-100 text-lg font-bold text-teal-700">
               {initial}
@@ -108,19 +55,14 @@ const LeadManagerCard = ({ manager, onEdit, onView, onResetPwd, onDelete }) => {
           )}
 
           <div className="min-w-0">
-            <h3 className="truncate text-lg font-semibold text-gray-900">
+            <button
+              onClick={() => onOpen(manager)}
+              className="truncate text-left text-lg font-semibold text-gray-900 hover:text-teal-700"
+            >
               {manager.name}
-            </h3>
-
-            {manager.phone && (
-              <p className="text-sm text-gray-600">{manager.phone}</p>
-            )}
-            {manager.email && (
-              <p className="truncate text-sm text-gray-500">
-                {manager.email}
-              </p>
-            )}
-
+            </button>
+            {manager.phone && <p className="text-sm text-gray-600">{manager.phone}</p>}
+            {manager.email && <p className="truncate text-sm text-gray-500">{manager.email}</p>}
             {(manager.location || manager.state) && (
               <p className="flex items-center gap-1 text-sm text-gray-500">
                 <LocateIcon size={14} />
@@ -139,84 +81,75 @@ const LeadManagerCard = ({ manager, onEdit, onView, onResetPwd, onDelete }) => {
           <ActionButton icon={Pencil} label="Edit" tone="gray" onClick={() => onEdit(manager)} />
           <ActionButton icon={Eye} label="View" tone="blue" onClick={() => onView(manager)} />
           <ActionButton icon={Lock} label="Reset Pwd" tone="blue" onClick={() => onResetPwd(manager)} />
-          <ActionButton icon={Delete} label="Delete" tone="red" onClick={() => onDelete(manager)} />
+          <ActionButton icon={Trash2} label="Delete" tone="red" onClick={() => onDelete(manager)} />
         </div>
+      </div>
+
+      {/* Password reveal */}
+      <div className="mt-3 flex items-center gap-2 border-t border-gray-100 pt-3 text-sm text-gray-500">
+        <span>Pwd:</span>
+        <span className="tracking-widest">
+          {showPwd ? manager.temp_password || "Not set" : "••••••"}
+        </span>
+        <button
+          type="button"
+          onClick={() => setShowPwd((s) => !s)}
+          className="text-gray-400 hover:text-gray-600"
+          aria-label={showPwd ? "Hide password" : "Show password"}
+        >
+          {showPwd ? <EyeOff size={14} /> : <Eye size={14} />}
+        </button>
       </div>
     </div>
   );
-}
-
-
+};
 
 const LeadManager = () => {
-  const resource = useMemo(() => createResource("lead_managers"), []);
-  const { rows, loading, error, create, update, remove } = useCrud(resource);
-  const [formOpen, setFormOpen] = useState('')
-  const [editing, setEditing] = useState('')
-  const [form, setForm] = useState(EmptyForm)
-  const [saving, setSaving] = useState('')
-  const [formError, setFormError] = useState('')
-  const [photoFile, setPhotoFile] = useState(null)
-  const [photoPreview, setPhotoPreview] = useState('')
-  const navigate = useNavigate('')
+  const resource = useMemo(() => createResource("lead-managers"), []);
+  const { rows, loading, error, create, update, remove, action } = useCrud(resource);
+  const navigate = useNavigate();
 
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState(null); 
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState("");
 
-  const [viewing, setViewing] = useState(null)
-  const [toDelete, setToDelete] = useState(null)
-  const [deleting, setDeleting] = useState(false)
+  const [viewing, setViewing] = useState(null);
+  const [toDelete, setToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [notice, setNotice] = useState("");
 
-
-  const handleView = (manager) => {
-    navigate(`/AdminLeadManager/${manager.id}`)
-  }
-
-  const openCreate = () => {
-    setEditing(null)
-    setForm(EmptyForm)
-    setPhotoFile(null)
-    setPhotoPreview(null)
-    setFormError('')
-    setFormOpen(true)
-  }
-
-  const openEdit = (row) => {
-    setEditing(row)
-    setForm({
-      name: row.name || '',
-      phone: row.phone || '',
-      email: row.email || "",
-      location: row.location || "",
-      state: row.state || "",
-      password: "",
-      photo_url: row.photo_url || "",
-    })
-    setPhotoFile(null);
-    setPhotoPreview(row.photo_url || "");
-    setFormError("");
-    setFormOpen(true);
-  }
-
-  const handleChange = (e) => {
-    setForm((f) => ({
-      ...f,
-      [e.target.name]: e.target.value,
-    }));
+  const flash = (msg) => {
+    setNotice(msg);
+    window.clearTimeout(flash._t);
+    flash._t = window.setTimeout(() => setNotice(""), 3000);
   };
 
+  const openCreate = () => {
+    setEditing(null);
+    setForm(EMPTY_FORM);
+    setFormError("");
+    setFormOpen(true);
+  };
 
-  const handlePhotoChange = (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  const openEdit = (row) => {
+    setEditing(row);
+    setForm({
+      name: row.name ?? "",
+      phone: row.phone ?? "",
+      email: row.email ?? "",
+      location: row.location ?? "",
+      state: row.state ?? "",
+      password: "",
+      photo_url: row.photo_url ?? "",
+    });
+    setFormError("");
+    setFormOpen(true);
+  };
 
-    setPhotoFile(file)
-    setPhotoPreview(URL.createObjectURL(file))
-  }
-
-  const clearPhoto = () => {
-    setPhotoFile(null)
-    setPhotoPreview('')
-    setForm((f) => ({ ...f, photo_url: '' }))
-  }
+  const handleChange = (e) =>
+    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -224,100 +157,46 @@ const LeadManager = () => {
     setFormError("");
 
     try {
-      let photoUrl = form.photo_url;
-
-      if (photoFile) {
-        photoUrl = await uploadPhoto(photoFile);
-      }
-
-      let authUserId = editing?.user_id || null;
-      let loginEmail = editing?.login_email || makeLoginEmail(form.phone);
-
-      if (!editing) {
-        const { data, error } = await signupClient.auth.signUp({
-          email: loginEmail,
-          password: form.password,
-          options: {
-            data: {
-              name: form.name,
-              phone: form.phone,
-              role: "lead_manager",
-            },
-          },
-        });
-
-        if (error) {
-          setFormError(error.message);
-          setSaving(false);
-          return;
-        }
-
-        authUserId = data.user?.id;
-
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .upsert({
-            id: authUserId,
-            name: form.name,
-            email: loginEmail,
-            phone: form.phone.trim(),
-            role: "leadmanager",
-            status: "active",
-          });
-
-        if (profileError) {
-          setFormError(profileError.message);
-          return;
-        }
-      }
-
-      const payload = {
-        name: form.name,
-        phone: form.phone,
-        email: form.email,
-        location: form.location,
-        state: form.state,
-        photo_url: photoUrl,
-        login_email: loginEmail,
-        user_id: authUserId,
-      };
+      // Don't send an empty password on edit.
+      const payload = { ...form };
+      if (!payload.password) delete payload.password;
 
       const res = editing
         ? await update(editing.id, payload)
         : await create(payload);
 
-      if (res.error) {
-        setFormError(res.error.message);
+      if (res?.error) {
+        setFormError(res.error.message || "Something went wrong");
         return;
       }
-
       setFormOpen(false);
-    } catch (err) {
-      setFormError(err.message || "Something went wrong");
     } finally {
       setSaving(false);
     }
   };
 
+  const handleDelete = async () => {
+    if (!toDelete) return;
+    setDeleting(true);
+    const res = await remove(toDelete.id);
+    setDeleting(false);
+    if (!res?.error) setToDelete(null);
+    else flash(res.error.message);
+  };
 
-  const handleDelete = () => {
-    setDeleting(true)
-    const res = remove(toDelete.id)
-    setDeleting(false)
-
-    if (!res.error) {
-      setDeleting(null)
-    }
-  }
-
-  const handleResetPwd = (manager) => {
-    alert(`Reset password for ${manager.phone} coming soon`)
-  }
+  const handleResetPwd = async (manager) => {
+    const password = window.prompt(
+      `Set a login password for ${manager.name} (they log in with phone ${manager.phone}):`
+    );
+    if (!password) return;
+    const res = await action(manager.id, "reset-password", { password });
+    flash(res?.error ? res.error.message : `Login enabled for ${manager.name}.`);
+  };
 
   return (
-    <div  >
-      <div className='flex items-center justify-between'>
-        <div></div>
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <div />
         <button
           onClick={openCreate}
           className="flex items-center gap-2 rounded-xl bg-[#0d9488] px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700"
@@ -326,182 +205,101 @@ const LeadManager = () => {
           Add Lead Manager
         </button>
       </div>
+
+      {notice && (
+        <div className="rounded-xl bg-blue-50 px-4 py-3 text-sm text-blue-700">{notice}</div>
+      )}
       {error && (
-        <div>{error}</div>
+        <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
       )}
 
       {loading ? (
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           {[0, 1].map((i) => (
-            <div
-              key={i}
-            />
+            <div key={i} className="h-40 animate-pulse rounded-2xl border border-gray-100 bg-white" />
           ))}
         </div>
       ) : rows.length === 0 ? (
-        <div className="rounded-2xl border border-gray-100 bg-white p-10 text-center text-gray-400 shadow-sm">No lead manager yet</div>
+        <div className="rounded-2xl border border-gray-100 bg-white p-10 text-center text-gray-400 shadow-sm">
+          No lead managers yet. Add your first one.
+        </div>
       ) : (
-        <div className='p-5 grid grid-cols-1 md:grid-cols-2 gap-5'>
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           {rows.map((manager) => (
-            <LeadManagerCard key={manager.id}
+            <LeadManagerCard
+              key={manager.id}
               manager={manager}
               onEdit={openEdit}
-              onView={handleView}
+              onView={setViewing}
+              onOpen={(m) => navigate(`/AdminLeadManager/${m.id}`)}
               onResetPwd={handleResetPwd}
-              onDelete={handleDelete}
+              onDelete={setToDelete}
             />
           ))}
         </div>
       )}
 
+      {/* Create / Edit modal */}
       <Modal
         open={formOpen}
         onClose={() => setFormOpen(false)}
-        size='lg'
-        title={editing ? 'Edit Lead Manager' : 'Add Lead Manager'}
+        size="lg"
+        title={editing ? "Edit Lead Manager" : "Add Lead Manager"}
       >
-        <form onSubmit={handleSubmit} className='space-y-4'>
+        <form onSubmit={handleSubmit} className="space-y-4">
           {formError && (
-            <div className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600">
-              {formError}
-            </div>
+            <div className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600">{formError}</div>
           )}
-          <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
-            <FormField
-              label='Full Name'
-              name='name'
-              value={form.name}
-              onChange={handleChange}
-              required
-              placeholder="Full Name"
-            />
 
-            <FormField
-              label='Phone'
-              name='phone'
-              type='tel'
-              value={form.phone}
-              onChange={handleChange}
-              required
-              placeholder="Phone number"
-            />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormField label="Full Name" name="name" value={form.name} onChange={handleChange} required placeholder="Full name" />
+            <FormField label="Phone" name="phone" type="tel" value={form.phone} onChange={handleChange} required placeholder="Phone number" />
           </div>
-          <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
-            <FormField
-              label='email'
-              name='email'
-              value={form.email}
-              onChange={handleChange}
-              required
-              placeholder="Email"
-            />
 
-            <FormField
-              label='Location'
-              name='location'
-              value={form.location}
-              onChange={handleChange}
-              placeholder="city"
-            />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormField label="Email" name="email" type="email" value={form.email} onChange={handleChange} placeholder="email@example.com" />
+            <FormField label="Location" name="location" value={form.location} onChange={handleChange} placeholder="City / area" />
           </div>
 
           {editing ? (
-            <FormField
-              label='state'
-              name='state'
-              value={form.state}
-              onChange={handleChange}
-              placeholder='State'
-            />
+            <FormField label="State" name="state" value={form.state} onChange={handleChange} placeholder="State" />
           ) : (
-            <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
-              <FormField
-                label="State"
-                name="state"
-                value={form.state}
-                onChange={handleChange}
-                placeholder="State"
-              />
-
-              <FormField
-                label="Password"
-                name="password"
-                type="password"
-                value={form.password}
-                onChange={handleChange}
-                required
-                placeholder="Min. 6 characters"
-              />
-
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <FormField label="State" name="state" value={form.state} onChange={handleChange} placeholder="State" />
+              <FormField label="Password" name="password" type="password" value={form.password} onChange={handleChange} required placeholder="Min. 6 characters" />
             </div>
           )}
-          <div className='my-2'>
-            <span className='mb-1 block text-sm font-medium text-gray-700'>Photo (Optional)</span>
-            <div className='flex gap-2 items-center my-3'>
-              {photoPreview ? (
-                <img src={photoPreview}
-                  alt='preview'
-                  className="h-16 w-16 rounded-full border border-gray-200 object-cover"
-                />
-              ) : (
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 text-gray-400">
 
-                  <ImageIcon size={22} />
-                </div>
-              )}
-              <label className="cursor-pointer rounded-xl border border-teal-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-teal-50">
-                <span className='flex gap-2 items-center border-1 border-[#0f746c]  rounded-xl p-1 text-sm'>
-                  <Upload size={15} />
-                  Upload Photo
-                </span>
-                <input
-                  type='file'
-                  accept='image/*'
-                  className='hidden'
-                  onChange={handlePhotoChange}
-                />
-              </label>
+          <PhotoUpload
+            folder="lead-managers"
+            value={form.photo_url}
+            onChange={(url) => setForm((f) => ({ ...f, photo_url: url }))}
+          />
 
-              {photoPreview && (
-                <button
-                  type='button'
-                  onClick={clearPhoto}
-                >Remove</button>
-              )}
-            </div>
-          </div>
-          {/* Submit */}
           <button
             type="submit"
             disabled={saving}
-            className="w-full rounded-xl bg-[#0d9488] py-3 text-sm font-semibold text-white transition-colors disabled:opacity-60  hover:bg-teal-700 my-3"
+            className="w-full rounded-xl bg-[#0d9488] py-3 text-sm font-semibold text-white transition-colors hover:bg-teal-700 disabled:opacity-60"
           >
             {saving ? "Saving…" : editing ? "Save Changes" : "Create Account"}
           </button>
         </form>
       </Modal>
-      <Modal
-        open={!!viewing}
-        onClose={() => setViewing(null)}
-        title="Lead Manager Details"
-      >
+
+      {/* View modal */}
+      <Modal open={!!viewing} onClose={() => setViewing(null)} title="Lead Manager Details">
         {viewing && (
           <dl className="space-y-3 text-sm">
             {[
               ["Name", viewing.name],
-              ["Phone/Login Number", viewing.phone],
+              ["Phone", viewing.phone],
               ["Email", viewing.email],
-              [
-                "Location",
-                [viewing.location, viewing.state].filter(Boolean).join(", "),
-              ],
+              ["Location", [viewing.location, viewing.state].filter(Boolean).join(", ")],
               ["Role", "Lead Manager"],
             ].map(([label, value]) => (
               <div key={label} className="flex justify-between gap-4">
                 <dt className="text-gray-500">{label}</dt>
-                <dd className="text-right font-medium text-gray-900">
-                  {value || "—"}
-                </dd>
+                <dd className="text-right font-medium text-gray-900">{value || "—"}</dd>
               </div>
             ))}
           </dl>
@@ -511,13 +309,13 @@ const LeadManager = () => {
       <ConfirmDialog
         open={!!toDelete}
         onCancel={() => setToDelete(null)}
-        onConfirm={setToDelete}
+        onConfirm={handleDelete}
         loading={deleting}
         title="Delete lead manager"
         message={`Delete "${toDelete?.name}"? This cannot be undone.`}
       />
     </div>
-  )
-}
+  );
+};
 
-export default LeadManager
+export default LeadManager;

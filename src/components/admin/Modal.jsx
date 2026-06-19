@@ -14,7 +14,7 @@ import { X } from "lucide-react";
  */
 const SIZES = { md: "max-w-md", lg: "max-w-2xl" };
 
-const Modal = ({ open, onClose, title, children, footer, size = "md" }) => {
+const Modal = ({ open, onClose, title, children, footer, size = "md", className = '' }) => {
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => e.key === "Escape" && onClose?.();
@@ -31,7 +31,7 @@ const Modal = ({ open, onClose, title, children, footer, size = "md" }) => {
       <div
         role="dialog"
         aria-modal="true"
-        className={`relative z-10 px-2 ${SIZES[size]} overflow-hidden rounded-2xl bg-white shadow-xl`}
+        className={`relative z-10 px-2 overflow-hidden rounded-2xl bg-white shadow-xl ${className || SIZES[size]}`}
       >
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
           <h3 className="text-base font-semibold text-gray-900">{title}</h3>

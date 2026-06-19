@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext.jsx";
 
 /**
  * Route guard (backend-based)
  */
 const ProtectedRoute = ({ allow = [], children }) => {
+  const { token, role } = useAuth();
   const [status, setStatus] = useState("checking");
 
   useEffect(() => {
@@ -12,33 +14,30 @@ const ProtectedRoute = ({ allow = [], children }) => {
 
     const checkAuth = async () => {
       try {
-        const session = JSON.parse(localStorage.getItem("session"));
-        const role = localStorage.getItem("role");
-
-        if (!session || !role) {
-          setStatus("denied");
+        if (!token || !role) {
+          if (active) setStatus("denied");
           return;
         }
 
         const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/verify`, {
           method: "GET",
           headers: {
-            Authorization: `Bearer ${session.access_token}`,
+            Authorization: `Bearer ${token}`,
           },
         });
 
         const data = await res.json();
 
         if (!res.ok || !data.valid) {
-          setStatus("denied");
+          if (active) setStatus("denied");
           return;
         }
 
         const ok = allow.length === 0 || allow.includes(role);
 
-        setStatus(ok ? "ok" : "denied");
+        if (active) setStatus(ok ? "ok" : "denied");
       } catch (err) {
-        setStatus("denied");
+        if (active) setStatus("denied");
       }
     };
 
@@ -47,7 +46,7 @@ const ProtectedRoute = ({ allow = [], children }) => {
     return () => {
       active = false;
     };
-  }, [allow]);
+  }, [allow, token, role]);
 
   if (status === "checking") {
     return (

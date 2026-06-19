@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { homeForRole } from "../../auth/roles.js";
+import { useAuth } from "../../context/AuthContext.jsx";
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -18,42 +20,16 @@ const Login = () => {
     setErrorMsg("");
 
     try {
-      const cleanPhone = phone.trim();
-      console.log(import.meta.env.VITE_BACKEND_URL);
+      // login() performs the same POST /api/auth/login and stores the session.
+      const result = await login(phone, password);
 
-
-      // NOW CALL BACKEND (NOT SUPABASE DIRECTLY)
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          phone,
-          password,
-        }),
-
-      });
-      console.log(import.meta.env.VITE_BACKEND_URL);
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setErrorMsg(data.message || "Login failed");
+      if (!result.ok) {
+        setErrorMsg(result.message || "Login failed");
         return;
       }
 
-      // ✅ store session + role
-      localStorage.setItem("session", JSON.stringify(data.session));
-      localStorage.setItem("role", data.role);
-      localStorage.setItem("user", JSON.stringify(data.user));
-
       // ✅ redirect based on role
-      const role = data.role || "staff";
-
-      localStorage.setItem("role", role);
-
-      navigate(homeForRole(role));
+      navigate(homeForRole(result.role || "staff"));
     } catch (err) {
       setErrorMsg("Something went wrong. Please try again.");
     } finally {

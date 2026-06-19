@@ -1,48 +1,12 @@
-import { useParams } from "react-router-dom";
-import { useLeadDashboardData } from "../../hooks/useLeadDashboardData";
-import { ActivityIcon, CircleCheckBig, Clock, Hourglass, Star, Timeline, TriangleAlert, UserRoundCheck, Users } from "lucide-react";
-import { useEffect, useState } from "react";
-import { PiCarProfile, PiTrademark } from "react-icons/pi";
-import Modal from '../../components/admin/Modal';
-import FormField from "../../components/admin/FormField";
-import AddLeadModal from "../LeadManager/AddLeadModel.jsx";
-import Leads from "./Leads.jsx";
-import { getLeads } from "../../services/LeadServices.js";
+import { ActivityIcon, CircleCheckBig, Clock, Hourglass, Star, TriangleAlert, UserRoundCheck, Users } from "lucide-react";
+import AddLeadModal from "./AddLeadModel.jsx";
+import { useDashboard } from "../../context/DashboardContext.jsx";
+import { useLeads } from "../../context/LeadContext.jsx";
 
 
-
-
-
-const Empty_Form = {
-    phone: "",
-    name: "",
-    location: "",
-    state: "",
-    whatsapp: "",
-    email: "",
-    urgency: "",
-    designation: "",
-    leadSource: "",
-    language: "",
-    units: "",
-    model: "",
-    notes: "",
-};
-
-
-const LeadManagerDashboard = ({ adminView = false }) => {
-    const [formOpen, setFormOpen] = useState(false)
-    const [form, setForm] = useState(Empty_Form)
-    const [editing, setEditing] = useState('')
-    const [leads, setLeads] = useState([]);
-    const [search, setSearch] = useState('')
-    const { id } = useParams();
-    const [refreshKey, setRefreshKey] = useState(0);
-
-    const refreshDashboard = () => {
-        setRefreshKey(prev => prev + 1);
-    };
-
+const LeadManagerDashboard = () => {
+    // Form modal state comes from LeadContext; dashboard stats from DashboardContext.
+    const { openCreate } = useLeads();
 
     const {
         stats: {
@@ -66,31 +30,7 @@ const LeadManagerDashboard = ({ adminView = false }) => {
         inactiveLeads = [],
         salesStaff = [],
         loading,
-    } = useLeadDashboardData(adminView ? id : null, refreshKey);
-
-
-    const fetchLeads = async () => {
-        const { data } = await getLeads();
-
-        setLeads(data || []);
-    };
-
-    useEffect(() => {
-        fetchLeads();
-    }, []);
-
-
-
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-
-        setForm((prev) => ({
-            ...prev,
-            [name]: value,
-        }));
-    };
-
-
+    } = useDashboard();
 
     if (loading) {
         return (
@@ -104,63 +44,6 @@ const LeadManagerDashboard = ({ adminView = false }) => {
 
 
 
-    // const handleSubmit = () => {
-
-    //     let updatedLeads;
-
-    //     if (editing) {
-
-    //         updatedLeads = leads.map((lead) =>
-
-    //             lead.id === editing.id
-
-    //                 ? {
-
-    //                     ...lead,
-
-    //                     ...form,
-
-    //                 }
-
-    //                 : lead
-
-    //         );
-
-    //     } else {
-
-    //         updatedLeads = [
-
-    //             {
-
-    //                 id: Date.now(),
-
-    //                 ...form,
-
-    //                 createdAt: "Just now",
-
-    //             },
-
-    //             ...leads,
-
-    //         ];
-
-    //     }
-
-    //     setLeads(updatedLeads);
-
-    //     localStorage.setItem(
-
-    //         "leads",
-
-    //         JSON.stringify(updatedLeads)
-
-    //     );
-
-    //     setEditing(null);
-
-    //     setFormOpen(false);
-
-    // };
     return (
         <div className="space-y-6">
 
@@ -417,7 +300,7 @@ const LeadManagerDashboard = ({ adminView = false }) => {
                         </h2>
 
                         <button
-                            onClick={() => setFormOpen(true)}
+                            onClick={openCreate}
                             className="mb-3 w-full rounded-lg bg-[#d97706] py-2 font-medium text-white"
                         >
                             + Add Lead
@@ -447,27 +330,8 @@ const LeadManagerDashboard = ({ adminView = false }) => {
             </div>
 
 
-            <AddLeadModal
+            <AddLeadModal />
 
-                open={formOpen}
-
-                onClose={() => {
-
-                    setFormOpen(false);
-
-                    setEditing(null);
-
-                }}
-
-                form={form}
-
-                setForm={setForm}
-
-                editing={editing}
-                refreshDashboard={refreshDashboard}
-                fetchLeads={fetchLeads}
-            />
-          
         </div>
     );
 };

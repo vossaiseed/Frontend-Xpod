@@ -20,6 +20,8 @@ import AssignedLeads from "./pages/admin/AssignedLeads.jsx";
 import ConversionRequests from "./pages/admin/ConversionRequests.jsx";
 import GeneralLeads from "./pages/admin/GeneralLeads.jsx";
 import PartnerDashboard from "./pages/partner/PartnerDashboard.jsx";
+import { DashboardProvider } from "./context/DashboardContext.jsx";
+import { LeadProvider } from "./context/LeadContext.jsx";
 
 // Placeholder for admin sub-pages not built yet.
 const EmptyPage = ({ title }) => <h1 className="text-2xl font-bold">{title}</h1>;
@@ -51,13 +53,13 @@ const App = () => {
       >
 
         <Route index element={<AdminDashboard />} />
-        <Route path="pending-review" element={<PendingReview/>} />
-        <Route path="assigned-leads" element={ <AssignedLeads/>} />
-        <Route path="conversion-requests" element={<ConversionRequests/>} />
+        <Route path="pending-review" element={<PendingReview />} />
+        <Route path="assigned-leads" element={<AssignedLeads />} />
+        <Route path="conversion-requests" element={<ConversionRequests />} />
         <Route path="partners" element={<Partners />} />
         <Route path="lead-managers" element={<LeadManager />} />
         <Route path="sales-team" element={<SalesMan />} />
-        <Route path="general-leads" element={<GeneralLeads/>} />
+        <Route path="general-leads" element={<GeneralLeads />} />
         <Route path="trash" element={<EmptyPage title="Trash" />} />
         <Route path="settings" element={<EmptyPage title="Settings" />} />
         <Route path="lead-pool" element={<EmptyPage title="Lead Pool" />} />
@@ -80,7 +82,11 @@ const App = () => {
         path="/LeadManagerDashboard"
         element={
           <ProtectedRoute allow={["leadmanager"]}>
-            <LeadManagerLayout />
+            <DashboardProvider>
+              <LeadProvider>
+                <LeadManagerLayout />
+              </LeadProvider>
+            </DashboardProvider>
           </ProtectedRoute>
         }
       >
@@ -88,7 +94,8 @@ const App = () => {
 
         <Route path="leads" element={<LeadData />} />
 
-        <Route path="sales-team" element={<SalesTeam />} />
+        <Route path="sales-team" element={<ComingSoon title="Salesman Dashboard" />
+        } />
 
         <Route path="alerts" element={<Alerts />} />
 
@@ -119,7 +126,7 @@ const App = () => {
         path="/PartnerDashboard"
         element={
           <ProtectedRoute allow={["partner"]}>
-            <PartnerDashboard/>
+            <PartnerDashboard />
           </ProtectedRoute>
         }
       />
