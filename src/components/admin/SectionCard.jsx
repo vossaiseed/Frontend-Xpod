@@ -11,13 +11,18 @@ import { ArrowRight } from "lucide-react";
  *  - children: panel body
  *  - className:string — extra classes (e.g. grid spans)
  */
-const SectionCard = ({ title, icon: Icon, count, action, children, className = "" }) => (
+const SectionCard = ({ title, icon: Icon,  iconClassName = "", count, action, children, className = "" }) => (
   <section
     className={`flex flex-col rounded-2xl border border-gray-100 bg-white shadow-sm ${className}`}
   >
     <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
       <div className="flex items-center gap-2">
-        {Icon && <Icon size={18} className="text-gray-400" />}
+         {Icon && (
+          <Icon
+            size={18}
+            className={`text-gray-400 ${iconClassName}`}
+          />
+        )}
         <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
         {typeof count === "number" && (
           <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600">

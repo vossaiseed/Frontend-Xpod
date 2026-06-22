@@ -49,10 +49,6 @@ const AssignedLeadCards = () => {
                         <p className='flex gap-1 text-[#6b7280] text-sm'><Phone size={14} className='my-1' />{leads.phone}</p>
                         <p className='flex gap-1 text-[#6b7280] text-sm'><MapPin size={14} className='my-1' />{leads.location}</p>
                         <p className='flex gap-1 text-[#6b7280] text-sm'><Clock size={14} className='my-1' />{leads.date}</p>
-
-
-
-
                     </div>
                 ))}
             </div>

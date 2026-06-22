@@ -1,30 +1,24 @@
-import React from 'react'
-import AssignedLeadCards from '../../components/admin/AssignedLeadCards'
+import { useNavigate } from "react-router-dom";
+import LeadBoard from "../../components/admin/LeadBoard";
 
-const AssignedLeads = () => {
+const FILTERS = [
+    { key: "all", label: "All" },
+    { key: "new", label: "New" },
+    { key: "in_progress", label: "In Progress" },
+    { key: "converted", label: "Converted" },
+    { key: "failed", label: "Failed" },
+];
 
-const buttons=[
-    'All(168)',
-    'New',
-    "In-Progress",
-    "Converted",
-    "failed"
-]
+ 
+const AssignedLeads = () => (
+    <LeadBoard
+        title="Assigned Leads"
+        subtitle="All leads in the system."
+        query=""
+        filters={FILTERS}
+        emptyText="No leads yet."
+        
+    />
+);
 
-  return (
-    <div>
-        <div className='flex gap-2 '>
-        {buttons.map((button)=>(
-            <div key={button} className='border-0 shadow p-2 rounded-2xl text-sm'>
-                <button>{button}</button>
-            </div>
-        ))}
-        </div>
-        <div>
-            <AssignedLeadCards/>
-        </div>
-    </div>
-  )
-}
-
-export default AssignedLeads
+export default AssignedLeads;

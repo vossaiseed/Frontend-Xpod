@@ -3,14 +3,16 @@ import { Delete, Edit, Eye, EyeOff, FileType, ImageIcon, LocateIcon, Lock, Mail,
 
 import { useCrud } from '../../hooks/useCrud';
 import { createResource } from '../../api/resource';
+import { useAuth } from '../../context/AuthContext';
 
 import Modal from '../../components/admin/Modal';
 import FormField from '../../components/admin/FormField';
-import ConfirmDialog from '../../components/admin/ConfirmDialog';
+import ArchiveTrashDialog from '../../components/admin/ArchiveTrashDialog';
 
 import LanguageSelector from '../../components/admin/LanguageSelector';
 import LeadPermissionSelector from '../../components/admin/LeadPermissionSelector';
 import PhotoUpload from '../../components/admin/PhotoUpload';
+import ConfirmDialog from '../../../../../../Users/LENOVO/Documents/xpod/src/components/admin/ConfirmDialog';
 
 
 
@@ -38,7 +40,7 @@ import PhotoUpload from '../../components/admin/PhotoUpload';
 //       upsert: false,
 //       contentType: file.type
 //     })
-  
+
 //   console.log("UPLOAD ERROR:", error);
 
 //   if (error) throw error
@@ -108,6 +110,8 @@ const SalesManCard = ({ salesman, onEdit, onView, onResetPwd, onDelete }) => {
   const photo = salesman.photo_url || salesman.avatar_url
   const initial = (salesman.name?.charAt(0) || '?').toUpperCase()
   const [showPwd, setShowPwd] = useState(false)
+  const [leads, setLeads] = useState('')
+  const [converted, setConverted] = useState('')
 
   return (
     <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm hover:shadow-md">
@@ -132,26 +136,54 @@ const SalesManCard = ({ salesman, onEdit, onView, onResetPwd, onDelete }) => {
             </h3>
 
             {salesman.phone && (
-              <p className="text-sm text-gray-600">{salesman.phone}</p>
+              <p className="text-sm text-gray-600 my-1">{salesman.phone}</p>
             )}
-            {salesman.email && (
+            {/* {salesman.email && (
               <p className="truncate text-sm text-gray-500">
                 {salesman.email}
               </p>
-            )}
+            )} */}
 
-            {(salesman.location || salesman.state) && (
+            {/* {(salesman.location || salesman.state) && (
               <p className="flex items-center gap-1 text-sm text-gray-500">
                 <LocateIcon size={14} />
                 <span className="truncate">
                   {[salesman.location, salesman.state].filter(Boolean).join(", ")}
                 </span>
               </p>
-            )}
-            <span className="mt-1 inline-block rounded-2xl bg-[#ccfbf1] px-2 py-1 text-xs text-[#0f746c]">
-              {salesman.role || "Sales Person"}
+            )} */}
+            <div className='flex gap-3 my-1'>
+              <div className='flex gap-2 text-xs'>
+                <p>0</p>
+                <p>Leads</p>
+              </div>
+              <div className='flex gap-2 text-xs text-green-400'>
+                <p>0</p>
+                <p>Converted</p>
+              </div>
+            </div>
+
+            <span className='text-sm text-gray-500'>Pwd:</span>
+            <span className="tracking-widest px-2">
+              {showPwd ? salesman.temp_password || "Not set" : "••••••"}
             </span>
+            <button
+              type="button"
+              onClick={() => setShowPwd((s) => !s)}
+              className="text-gray-400 hover:text-gray-600"
+              aria-label={showPwd ? "Hide password" : "Show password"}
+            >
+              {showPwd ? <EyeOff size={14} /> : <Eye size={14} />}
+            </button>
+            {/* <div className=' flex flex-col'>
+              <span className="mt-1 inline-block rounded-2xl bg-[#ccfbf1] px-2 py-1 text-xs text-[#0f746c]">
+                {salesman.role || "Sales Person"}
+              </span>
+            </div> */}
+
           </div>
+
+          {/* Password reveal */}
         </div>
 
         <div className="flex flex-wrap gap-2 sm:flex-col sm:w-28">
@@ -162,21 +194,7 @@ const SalesManCard = ({ salesman, onEdit, onView, onResetPwd, onDelete }) => {
         </div>
       </div>
 
-      {/* Password reveal */}
-      <div className="mt-3 flex items-center gap-2 border-t border-gray-100 pt-3 text-sm text-gray-500">
-        <span>Pwd:</span>
-        <span className="tracking-widest">
-          {showPwd ? salesman.temp_password || "Not set" : "••••••"}
-        </span>
-        <button
-          type="button"
-          onClick={() => setShowPwd((s) => !s)}
-          className="text-gray-400 hover:text-gray-600"
-          aria-label={showPwd ? "Hide password" : "Show password"}
-        >
-          {showPwd ? <EyeOff size={14} /> : <Eye size={14} />}
-        </button>
-      </div>
+
     </div>
   );
 }
@@ -186,6 +204,7 @@ const SalesManCard = ({ salesman, onEdit, onView, onResetPwd, onDelete }) => {
 const SalesMan = () => {
   const resource = useMemo(() => createResource("sales-team"), []);
   const { rows, loading, error, create, update, remove, action } = useCrud(resource);
+  const { impersonate } = useAuth();
   const [formOpen, setFormOpen] = useState('')
   const [editing, setEditing] = useState('')
   const [form, setForm] = useState(EmptyForm)
@@ -334,6 +353,15 @@ const SalesMan = () => {
     }
   }
 
+  const handleArchive = async () => {
+    if (!toDelete) return
+    setDeleting(true)
+    const res = await action(toDelete.id, "archive")
+    setDeleting(false)
+    if (!res?.error) setToDelete(null)
+    else alert(res.error.message || "Archive failed")
+  }
+
   const handleResetPwd = async (salesman) => {
     const password = window.prompt(
       `Set a login password for ${salesman.name} (they log in with phone ${salesman.phone}):`
@@ -343,13 +371,19 @@ const SalesMan = () => {
     alert(res?.error ? res.error.message : `Login enabled for ${salesman.name}.`);
   }
 
+  // View → open this salesman's dashboard as admin ("View as").
+  const handleView = async (salesman) => {
+    const res = await impersonate("sales", salesman.id);
+    if (!res?.ok) alert(res?.message || "Could not open dashboard");
+  }
+
   return (
     <div  >
       <div className='flex items-center justify-between mb-5'>
         <div></div>
         <button
           onClick={openCreate}
-          className="flex items-center gap-2 rounded-xl bg-[#0d9488] px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700"
+          className="flex items-center gap-2 rounded-xl bg-[#2563eb] px-4 py-2 text-sm font-semibold text-white"
         >
           <UserPlus size={18} />
           Add  SalesMan
@@ -375,7 +409,7 @@ const SalesMan = () => {
             <SalesManCard key={salesman.id}
               salesman={salesman}
               onEdit={openEdit}
-              onView={setViewing}
+              onView={handleView}
               onResetPwd={handleResetPwd}
               onDelete={setToDelete}
             />
@@ -532,8 +566,9 @@ const SalesMan = () => {
         onCancel={() => setToDelete(null)}
         onConfirm={handleDelete}
         loading={deleting}
-        title="Delete sales person"
-        message={`Delete "${toDelete?.name}"? This cannot be undone.`}
+        title="Move sales person to Trash"
+        confirmLabel="Move to Trash"
+        message={`Move "${toDelete?.name}" to Trash? You can restore it within 30 days.`}
       />
     </div>
   )

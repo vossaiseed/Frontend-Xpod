@@ -101,10 +101,10 @@ const LeadManagerDashboard = () => {
             </div>
 
             {/* Lead Pipeline */}
-            <div className="rounded-xl bg-white p-4 shadow">
-                <h2 className="mb-4 text-lg font-semibold">Lead Pipeline</h2>
+            <div className="rounded-xl bg-white p-4 py- shadow">
+                <h2 className="mb-4 text-lg font-semibold uppercase">Lead Pipeline</h2>
 
-                <div className="flex flex-wrap gap-4 text-center">
+                <div className="flex flex-wrap gap-4 py-2 text-center">
                     <div className="rounded-lg border border-[#fde68a]  bg-yellow-100 px-4 py-3 text-[#db7706]">
                         <p className="text-xl font-bold">{pending}</p>
                         <p className="text-md">Pending</p>
@@ -120,17 +120,17 @@ const LeadManagerDashboard = () => {
                         <p className="text-md">Discussion</p>
                     </div>
 
-                    <div className="rounded-lg bg-orange-100 px-6 py-3">
+                    <div className="rounded-lg bg-orange-100 text-orange-400 px-6 py-3">
                         <p className="text-2xl font-bold">{followup}</p>
                         <p className="text-md">Follow-up</p>
                     </div>
 
-                    <div className="rounded-lg bg-green-100 px-6 py-3">
+                    <div className="rounded-lg bg-green-100 text-green-500 px-6 py-3">
                         <p className="text-2xl font-bold">{pipelineConverted}</p>
                         <p className="text-md">Converted</p>
                     </div>
 
-                    <div className="rounded-lg bg-red-100 px-6 py-3">
+                    <div className="rounded-lg bg-[#fee2e2] text-red-600 px-6 py-3">
                         <p className="text-2xl font-bold">{failed}</p>
                         <p className="text-md">Failed</p>
                     </div>

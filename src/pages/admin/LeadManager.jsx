@@ -1,12 +1,13 @@
 import { useMemo, useState } from "react";
-import { Eye, EyeOff, LocateIcon, Lock, Pencil, Trash2, UserPlus } from "lucide-react";
+import { Eye, EyeOff, LocateIcon, Lock, Map, MapIcon, MapPin, Pencil, Trash2, UserPlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import { useCrud } from "../../hooks/useCrud.js";
 import { createResource } from "../../api/resource.js";
+import { useAuth } from "../../context/AuthContext.jsx";
 import Modal from "../../components/admin/Modal.jsx";
 import FormField from "../../components/admin/FormField.jsx";
-import ConfirmDialog from "../../components/admin/ConfirmDialog.jsx";
+import ArchiveTrashDialog from "../../components/admin/ArchiveTrashDialog.jsx";
 import PhotoUpload from "../../components/admin/PhotoUpload.jsx";
 
 const EMPTY_FORM = {
@@ -65,7 +66,7 @@ const LeadManagerCard = ({ manager, onEdit, onView, onOpen, onResetPwd, onDelete
             {manager.email && <p className="truncate text-sm text-gray-500">{manager.email}</p>}
             {(manager.location || manager.state) && (
               <p className="flex items-center gap-1 text-sm text-gray-500">
-                <LocateIcon size={14} />
+                <MapPin size={14} />
                 <span className="truncate">
                   {[manager.location, manager.state].filter(Boolean).join(", ")}
                 </span>
@@ -86,7 +87,7 @@ const LeadManagerCard = ({ manager, onEdit, onView, onOpen, onResetPwd, onDelete
       </div>
 
       {/* Password reveal */}
-      <div className="mt-3 flex items-center gap-2 border-t border-gray-100 pt-3 text-sm text-gray-500">
+      {/* <div className="mt-3 flex items-center gap-2 border-t border-gray-100 pt-3 text-sm text-gray-500">
         <span>Pwd:</span>
         <span className="tracking-widest">
           {showPwd ? manager.temp_password || "Not set" : "••••••"}
@@ -99,7 +100,7 @@ const LeadManagerCard = ({ manager, onEdit, onView, onOpen, onResetPwd, onDelete
         >
           {showPwd ? <EyeOff size={14} /> : <Eye size={14} />}
         </button>
-      </div>
+      </div> */}
     </div>
   );
 };
@@ -107,6 +108,7 @@ const LeadManagerCard = ({ manager, onEdit, onView, onOpen, onResetPwd, onDelete
 const LeadManager = () => {
   const resource = useMemo(() => createResource("lead-managers"), []);
   const { rows, loading, error, create, update, remove, action } = useCrud(resource);
+  const { impersonate } = useAuth();
   const navigate = useNavigate();
 
   const [formOpen, setFormOpen] = useState(false);
@@ -184,6 +186,17 @@ const LeadManager = () => {
     else flash(res.error.message);
   };
 
+  const handleArchive = async () => {
+    if (!toDelete) return;
+    setDeleting(true);
+    const res = await action(toDelete.id, "archive");
+    setDeleting(false);
+    if (!res?.error) {
+      setToDelete(null);
+      flash("Lead manager archived");
+    } else flash(res.error.message || "Archive failed");
+  };
+
   const handleResetPwd = async (manager) => {
     const password = window.prompt(
       `Set a login password for ${manager.name} (they log in with phone ${manager.phone}):`
@@ -191,6 +204,13 @@ const LeadManager = () => {
     if (!password) return;
     const res = await action(manager.id, "reset-password", { password });
     flash(res?.error ? res.error.message : `Login enabled for ${manager.name}.`);
+  };
+
+  // View → open this lead manager's dashboard as admin ("View as").
+  const handleView = async (manager) => {
+    flash(`Opening ${manager.name}'s dashboard…`);
+    const res = await impersonate("lead_manager", manager.id);
+    if (!res?.ok) flash(res?.message || "Could not open dashboard");
   };
 
   return (
@@ -230,8 +250,8 @@ const LeadManager = () => {
               key={manager.id}
               manager={manager}
               onEdit={openEdit}
-              onView={setViewing}
-              onOpen={(m) => navigate(`/AdminLeadManager/${m.id}`)}
+              onView={handleView}
+              onOpen={handleView}
               onResetPwd={handleResetPwd}
               onDelete={setToDelete}
             />
@@ -306,13 +326,15 @@ const LeadManager = () => {
         )}
       </Modal>
 
-      <ConfirmDialog
+      <ArchiveTrashDialog
         open={!!toDelete}
         onCancel={() => setToDelete(null)}
-        onConfirm={handleDelete}
-        loading={deleting}
-        title="Delete lead manager"
-        message={`Delete "${toDelete?.name}"? This cannot be undone.`}
+        onArchive={handleArchive}
+        onTrash={handleDelete}
+        name={toDelete?.name}
+        typeLabel="Lead Manager"
+        note="will lose access; their leads stay in the system."
+        busy={deleting}
       />
     </div>
   );

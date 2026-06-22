@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { getLeads, createLead, updateLead } from "../services/LeadServices.js";
+import { getLeads, createLead, updateLead, addReport } from "../services/LeadServices.js";
 import { useDashboard } from "./DashboardContext.jsx";
 
 /**
@@ -17,16 +17,35 @@ const EMPTY_FORM = {
   email: "",
   urgency: "",
   designation: "",
+  customDesignation: "",
   leadSource: "",
   language: "",
   units: "",
   model: "",
+  requirement: "",
   notes: "",
 };
+
+// Designation values offered by the select; anything else is a custom entry.
+export const KNOWN_DESIGNATIONS = [
+  "",
+  "VIP",
+  "Architects",
+  "Resort Owners",
+  "celebrity & influencers",
+  "others",
+];
+const isOtherDesignation = (d) => ["others", "Others", "Other"].includes(d);
 
 // Maps the camelCase form onto the real `leads` columns
 // (leadSource -> source; whatsapp has its own column).
 const toPayload = (form) => {
+  // A custom "Others" designation is stored as the typed value.
+  const designation =
+    isOtherDesignation(form.designation) && form.customDesignation?.trim()
+      ? form.customDesignation.trim()
+      : form.designation;
+
   return {
     name: form.name,
     phone: form.phone,
@@ -35,10 +54,11 @@ const toPayload = (form) => {
     location: form.location,
     state: form.state,
     urgency: form.urgency,
-    designation: form.designation,
+    designation,
     language: form.language,
     units: form.units,
     model: form.model,
+    requirement: form.requirement,
     notes: form.notes,
     source: form.source ?? form.leadSource ?? "",
     // A "VIP" designation flags the lead so the VIP badge shows.
@@ -87,11 +107,17 @@ export const LeadProvider = ({ children }) => {
   // Open in "edit" mode, mapping DB columns onto the form fields
   // (source -> leadSource so the Lead Source select is pre-filled).
   const openEdit = (lead) => {
+    // A stored designation that isn't one of the presets is a custom "Others".
+    const isCustom =
+      lead.designation && !KNOWN_DESIGNATIONS.includes(lead.designation);
     setForm({
       ...EMPTY_FORM,
       ...lead,
       leadSource: lead.source ?? lead.leadSource ?? "",
       whatsapp: lead.whatsapp ?? "",
+      requirement: lead.requirement ?? "",
+      designation: isCustom ? "others" : lead.designation ?? "",
+      customDesignation: isCustom ? lead.designation : "",
     });
     setEditing(lead);
     setFormOpen(true);
@@ -101,12 +127,27 @@ export const LeadProvider = ({ children }) => {
     const payload = { ...toPayload(form), ...extra };
     const isEditing = Boolean(editing && editing.id);
 
+    // Reviewing a partner-submitted lead: saving it promotes pending → new,
+    // which moves it out of "Pending Review" and into the claimable Lead Pool.
+    const reviewingPending = isEditing && editing.status === "pending";
+    if (reviewingPending) {
+      payload.status = "new";
+    }
+
     const res = isEditing
       ? await updateLead(editing.id, payload)
       : await createLead(payload);
 
     if (res?.message && !res?.data) {
       return { error: { message: res.message } };
+    }
+
+    // Timeline entry when a lead manager approves a pending lead into the pool.
+    if (reviewingPending) {
+      await addReport(editing.id, {
+        status: "new",
+        note: "Reviewed by Lead Manager — moved to the Lead Pool.",
+      }).catch(() => {});
     }
 
     await fetchLeads();

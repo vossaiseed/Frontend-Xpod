@@ -19,6 +19,18 @@ import PendingReview from "./pages/admin/PendingReview.jsx";
 import AssignedLeads from "./pages/admin/AssignedLeads.jsx";
 import ConversionRequests from "./pages/admin/ConversionRequests.jsx";
 import GeneralLeads from "./pages/admin/GeneralLeads.jsx";
+import Trash from "./pages/admin/Trash.jsx";
+import Setting from "./pages/admin/Setting.jsx";
+import LeadPool from "./pages/admin/LeadPool.jsx";
+import LeadDetail from "./pages/admin/LeadDetail.jsx";
+import SalesLayout from "./layouts/SalesLayout.jsx";
+import SalesDashboard from "./pages/sales/SalesDashboard.jsx";
+import SalesAssignedLeads from "./pages/sales/SalesAssignedLeads.jsx";
+import SalesFollowups from "./pages/sales/SalesFollowups.jsx";
+import SalesConversionRequests from "./pages/sales/SalesConversionRequests.jsx";
+import SalesEarnings from "./pages/sales/SalesEarnings.jsx";
+import SalesMilestones from "./pages/sales/SalesMilestones.jsx";
+import SalesLeadPool from "./pages/sales/SalesLeadPool.jsx";
 import PartnerDashboard from "./pages/partner/PartnerDashboard.jsx";
 import { DashboardProvider } from "./context/DashboardContext.jsx";
 import { LeadProvider } from "./context/LeadContext.jsx";
@@ -60,10 +72,27 @@ const App = () => {
         <Route path="lead-managers" element={<LeadManager />} />
         <Route path="sales-team" element={<SalesMan />} />
         <Route path="general-leads" element={<GeneralLeads />} />
-        <Route path="trash" element={<EmptyPage title="Trash" />} />
-        <Route path="settings" element={<EmptyPage title="Settings" />} />
-        <Route path="lead-pool" element={<EmptyPage title="Lead Pool" />} />
+        <Route path="trash" element={<Trash />} />
+        <Route path="settings" element={<Setting />} />
       </Route>
+
+      {/* Lead detail & pool — standalone full pages (no dashboard sidebar) */}
+      <Route
+        path="/AdminCRM/lead/:id"
+        element={
+          <ProtectedRoute allow={["admin"]}>
+            <LeadDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/AdminCRM/lead-pool"
+        element={
+          <ProtectedRoute allow={["admin"]}>
+            <LeadPool />
+          </ProtectedRoute>
+        }
+      />
 
 
 
@@ -73,7 +102,25 @@ const App = () => {
         path="/SalesmanDashboard"
         element={
           <ProtectedRoute allow={["salesman"]}>
-            <ComingSoon title="Salesman Dashboard" />
+            <SalesLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<SalesDashboard />} />
+        <Route path="assigned" element={<SalesAssignedLeads />} />
+        <Route path="follow-ups" element={<SalesFollowups />} />
+        <Route path="conversion-requests" element={<SalesConversionRequests />} />
+        <Route path="earnings" element={<SalesEarnings />} />
+        <Route path="milestones" element={<SalesMilestones />} />
+        <Route path="lead-pool" element={<SalesLeadPool />} />
+      </Route>
+
+      {/* Lead detail — standalone full page (no dashboard sidebar) */}
+      <Route
+        path="/SalesmanDashboard/lead/:id"
+        element={
+          <ProtectedRoute allow={["salesman"]}>
+            <LeadDetail />
           </ProtectedRoute>
         }
       />
@@ -94,8 +141,7 @@ const App = () => {
 
         <Route path="leads" element={<LeadData />} />
 
-        <Route path="sales-team" element={<ComingSoon title="Salesman Dashboard" />
-        } />
+        <Route path="sales-team" element={<SalesTeam />} />
 
         <Route path="alerts" element={<Alerts />} />
 
@@ -127,6 +173,14 @@ const App = () => {
         element={
           <ProtectedRoute allow={["partner"]}>
             <PartnerDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/PartnerLead/:id"
+        element={
+          <ProtectedRoute allow={["partner"]}>
+            <LeadDetail />
           </ProtectedRoute>
         }
       />

@@ -1,9 +1,11 @@
-import { Search, Plus, LogOut, MapPin, Trophy, Lock, Mic, PlusIcon } from "lucide-react";
+import { Search, Plus, LogOut, MapPin, Trophy, Lock, Mic, PlusIcon, ArrowLeft } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PartnerAddLead from "../../components/partner/PartnerAddLead";
 import ResetPassword from "../../components/partner/ResetPassword";
 import PartnerAddLeadModel from "../../components/partner/PartnerAddLeadModel";
+import ImpersonationBanner from "../../components/common/ImpersonationBanner";
+import { useAuth } from "../../context/AuthContext";
 
 
 const API = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
@@ -53,6 +55,7 @@ const FILTERS = [
 
 export default function PartnerDashboard() {
     const navigate = useNavigate();
+    const { impersonation, stopImpersonate } = useAuth();
 
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -96,6 +99,7 @@ export default function PartnerDashboard() {
     const partner = data?.partner || {};
     const stats = data?.stats || {};
     const leads = data?.leads || [];
+    const recentActivity = data?.recentActivity || [];
 
     const visibleLeads = useMemo(() => {
         const q = search.trim().toLowerCase();
@@ -113,8 +117,9 @@ export default function PartnerDashboard() {
 
     return (
         <div className="min-h-screen bg-[#ebe2d2]">
+            <ImpersonationBanner />
             {/* Navbar */}
-            <div className="flex flex-row sm:flex-row justify-between items-center gap-4 px-4 sm:px-8 py-8 sm:py-6">
+            <div className="flex flex-row sm:flex-row justify-between items-center gap-4 px-4 sm:px-8 py-8 sm:py-6 mt-5">
                 <h1 className="text-2xl font-bold text-amber-700">xpod</h1>
 
                 <div className="flex items-center gap-3 sm:gap-4">
@@ -132,13 +137,23 @@ export default function PartnerDashboard() {
                             setOpenForm={setResetOpen}
                         />
                     </div>
-                    <button
-                        onClick={handleLogout}
-                        className="bg-black text-white px-4 sm:px-6 py-2 sm:py-3 rounded-full flex items-center gap-2 text-sm sm:text-base"
-                    >
-                        <LogOut size={18} />
-                        Logout
-                    </button>
+                    {impersonation ? (
+                        <button
+                            onClick={stopImpersonate}
+                            className="bg-amber-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-full flex items-center gap-2 text-sm sm:text-base"
+                        >
+                            <ArrowLeft size={18} />
+                            Back to Admin CRM
+                        </button>
+                    ) : (
+                        <button
+                            onClick={handleLogout}
+                            className="bg-black text-white px-4 sm:px-6 py-2 sm:py-3 rounded-full flex items-center gap-2 text-sm sm:text-base"
+                        >
+                            <LogOut size={18} />
+                            Logout
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -220,9 +235,30 @@ export default function PartnerDashboard() {
 
                         <div className="mt-6">
                             <h2 className="font-bold text-3xl sm:text-xl">Recent Activity</h2>
-                            <div className="bg-white rounded-2xl h-22 flex items-center justify-center text-gray-400 text-sm mt-2">
-                                No Recent Activity Yet
-                            </div>
+                            {recentActivity.length === 0 ? (
+                                <div className="bg-white rounded-2xl h-22 flex items-center justify-center text-gray-400 text-sm mt-2 p-4">
+                                    No Recent Activity Yet
+                                </div>
+                            ) : (
+                                <div className="bg-white rounded-2xl mt-2 divide-y divide-gray-100">
+                                    {recentActivity.slice(0, 6).map((a) => (
+                                        <div key={a.id} className="flex items-start gap-3 p-3">
+                                            <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-600">
+                                                {(a.author_name || "?").charAt(0).toUpperCase()}
+                                            </span>
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-sm text-gray-800">
+                                                    <span className="font-semibold">{a.author_name || "Update"}</span>
+                                                    {a.status ? ` · ${a.status.replace(/_/g, " ")}` : ""}
+                                                    {a.lead_name ? ` — ${a.lead_name}` : ""}
+                                                </p>
+                                                {a.note && <p className="text-sm text-gray-500">{a.note}</p>}
+                                                <p className="text-xs text-gray-400">{fmtDate(a.created_at)}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         {/* Leads */}
@@ -280,7 +316,11 @@ export default function PartnerDashboard() {
                             ) : (
                                 <div className="space-y-3 mt-2">
                                     {visibleLeads.map((lead) => (
-                                        <div key={lead.id} className="bg-white rounded-3xl p-5 sm:p-4">
+                                        <button
+                                            key={lead.id}
+                                            onClick={() => navigate(`/PartnerLead/${lead.id}`)}
+                                            className="block w-full text-left bg-white rounded-3xl p-5 sm:p-4 transition hover:shadow-md"
+                                        >
                                             <div className="text-gray-500 mb-2 text-sm">
                                                 {STATUS_LABELS[lead.status] || lead.status}
                                             </div>
@@ -294,9 +334,9 @@ export default function PartnerDashboard() {
                                                 <p className="text-gray-500 mt-1 text-sm sm:text-xs">{lead.notes}</p>
                                             )}
                                             <p className="text-gray-400 mt-1 text-xs sm:text-xs">
-                                                {fmtDate(lead.created_at)}
+                                                {fmtDate(lead.created_at)} · Tap to view timeline
                                             </p>
-                                        </div>
+                                        </button>
                                     ))}
                                 </div>
                             )}

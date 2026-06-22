@@ -1,5 +1,6 @@
 import { Menu, Plus } from "lucide-react";
 import { useAuth } from "../../context/AuthContext.jsx";
+import { useLeads } from "../../context/LeadContext.jsx";
 
 /**
  * Sticky top bar.
@@ -14,6 +15,7 @@ const Topbar = ({ title, onMenuClick }) => {
     const displayName = user?.name || "Admin";
     const role = user?.role || "admin";
     const initial = displayName.charAt(0).toUpperCase();
+    const {openCreate}=useLeads()
 
     return (
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 md:px-8">
@@ -31,7 +33,9 @@ const Topbar = ({ title, onMenuClick }) => {
             <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1 border rounded-2xl p-2 bg-[#d97706] text-white">
                     <Plus size={15} />
-                    <button className="text-sm">Add Lead</button>
+                    <button className="text-sm"
+                    onClick={openCreate}
+                    >Add Lead</button>
                 </div>
                 <span className="hidden rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold capitalize text-orange-600 sm:inline-block">
                     {role.replace(/_/g, " ")}

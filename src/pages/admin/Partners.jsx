@@ -3,8 +3,9 @@ import { Plus, Pencil, Eye, EyeOff, Star, Power, KeyRound, Trash2, MapPin, Mail,
 
 import { createResource } from "../../api/resource.js";
 import { useCrud } from "../../hooks/useCrud.js";
+import { useAuth } from "../../context/AuthContext.jsx";
 import Modal from "../../components/admin/Modal.jsx";
-import ConfirmDialog from "../../components/admin/ConfirmDialog.jsx";
+import ArchiveTrashDialog from "../../components/admin/ArchiveTrashDialog.jsx";
 import FormField from "../../components/admin/FormField.jsx";
 import PhotoUpload from "../../components/admin/PhotoUpload.jsx";
 
@@ -230,6 +231,7 @@ const Partners = () => {
     []
   );
   const { rows, loading, error, create, update, remove, action } = useCrud(resource);
+  const { impersonate } = useAuth();
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -316,6 +318,18 @@ const Partners = () => {
     if (!res.error) setToDelete(null);
   };
 
+  const handleArchive = async () => {
+    setDeleting(true);
+    const res = await action(toDelete.id, "archive");
+    setDeleting(false);
+    if (!res?.error) {
+      setToDelete(null);
+      flash("Partner archived");
+    } else {
+      flash(res.error.message || "Archive failed");
+    }
+  };
+
   /* ── card actions ── */
 
   const handleToggleStatus = async (row) => {
@@ -324,6 +338,13 @@ const Partners = () => {
     const res = await update(row.id, { status: next });
     setBusyId(null);
     flash(res.error ? res.error.message : `Partner ${next === "active" ? "activated" : "deactivated"}.`);
+  };
+
+  // View → open this partner's dashboard as admin ("View as").
+  const handleView = async (row) => {
+    flash(`Opening ${row.name}'s dashboard…`);
+    const res = await impersonate("partner", row.id);
+    if (!res?.ok) flash(res?.message || "Could not open dashboard");
   };
 
   const handleUpgrade = (row) => flash(`Upgrade tier for "${row.name}" — coming soon.`);
@@ -376,7 +397,7 @@ const Partners = () => {
               partner={p}
               busy={busyId === p.id}
               onEdit={openEdit}
-              onView={setViewing}
+              onView={handleView}
               onUpgrade={handleUpgrade}
               onToggleStatus={handleToggleStatus}
               onResetPwd={handleResetPwd}
@@ -475,14 +496,16 @@ const Partners = () => {
         )}
       </Modal>
 
-      {/* Delete confirm (unchanged) */}
-      <ConfirmDialog
+      {/* Archive or Move to Trash */}
+      <ArchiveTrashDialog
         open={!!toDelete}
         onCancel={() => setToDelete(null)}
-        onConfirm={handleDelete}
-        loading={deleting}
-        title="Delete partner"
-        message={`Delete "${toDelete?.name}"? This cannot be undone.`}
+        onArchive={handleArchive}
+        onTrash={handleDelete}
+        name={toDelete?.name}
+        typeLabel="Partner"
+        note="may contain linked leads and royalty history."
+        busy={deleting}
       />
     </div>
   );

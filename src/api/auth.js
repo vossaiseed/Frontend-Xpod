@@ -27,3 +27,18 @@ export const changePassword = async (currentPassword, newPassword) => {
   if (!res.ok) throw new Error(body.message || "Failed to change password");
   return body;
 };
+
+/** Change the phone number used to log in. */
+export const changePhone = async (newPhone, currentPassword) => {
+  const res = await fetch(`${API}/api/auth/change-phone`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${getToken()}`,
+    },
+    body: JSON.stringify({ newPhone, currentPassword }),
+  });
+  const body = await res.json();
+  if (!res.ok) throw new Error(body.message || "Failed to change phone");
+  return body;
+};
