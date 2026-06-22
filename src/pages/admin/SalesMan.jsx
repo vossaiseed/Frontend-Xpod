@@ -12,7 +12,7 @@ import ArchiveTrashDialog from '../../components/admin/ArchiveTrashDialog';
 import LanguageSelector from '../../components/admin/LanguageSelector';
 import LeadPermissionSelector from '../../components/admin/LeadPermissionSelector';
 import PhotoUpload from '../../components/admin/PhotoUpload';
-import ConfirmDialog from '../../../../../../Users/LENOVO/Documents/xpod/src/components/admin/ConfirmDialog';
+import ConfirmDialog from "../../components/admin/ConfirmDialog";
 
 
 
