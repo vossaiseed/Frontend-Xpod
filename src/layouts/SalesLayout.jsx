@@ -54,7 +54,13 @@ const SalesLayout = () => {
                 <div onClick={() => setSidebarOpen(false)} className="fixed inset-0 z-40 bg-black/40 lg:hidden" />
             )}
 
-            <SalesSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} member={member} />
+            <SalesSidebar
+                open={sidebarOpen}
+                onClose={() => setSidebarOpen(false)}
+                member={member}
+                leads={data?.leads}
+                loading={loading}
+            />
 
             <div className="lg:ml-64">
                 <ImpersonationBanner />

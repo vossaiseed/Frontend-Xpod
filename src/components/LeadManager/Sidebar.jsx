@@ -1,13 +1,61 @@
-import { NavLink } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 import { X, LogOut, ArrowLeft } from "lucide-react";
 import { menuItems, Lead_BASE } from "./LmenuConfig.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useLeads } from "../../context/LeadContext.jsx";
 
+const ACTIVE_STATUSES = ["new", "in_progress", "discussion", "followup", "conversion_requested"];
+const hoursSince = (d) => (d ? (Date.now() - new Date(d).getTime()) / 3600000 : Infinity);
+const SEEN_LEADS_KEY = "lm_seen_leads";
+
 const Sidebar = ({ open, onClose, onAddLead }) => {
     const { user, logout, impersonation, stopImpersonate } = useAuth();
-    const { openCreate } = useLeads();
+    const { openCreate, leads = [], loading } = useLeads();
+    const location = useLocation();
 
+    const totalLeads = leads.length;
+
+    // Alerts = live action-required total (inactive 48h+ leads).
+    const inactiveCount = leads.filter(
+        (l) =>
+            l.assigned_to &&
+            ACTIVE_STATUSES.includes(l.status) &&
+            hoursSince(l.updated_at || l.created_at) >= 48
+    ).length;
+
+    // Leads = notification count: only NEW/unseen leads since the Leads page
+    // was last opened. Baseline on first load so existing leads aren't "new".
+    const [seenLeads, setSeenLeads] = useState(() => {
+        const raw = localStorage.getItem(SEEN_LEADS_KEY);
+        return raw === null ? null : Number(raw) || 0;
+    });
+
+    const onLeadsPage = location.pathname
+        .toLowerCase()
+        .startsWith(`${Lead_BASE}/leads`.toLowerCase());
+
+    useEffect(() => {
+        if (seenLeads === null) {
+            // Wait for the first fetch to finish, then baseline (treat current
+            // leads as already seen).
+            if (!loading) {
+                setSeenLeads(totalLeads);
+                localStorage.setItem(SEEN_LEADS_KEY, String(totalLeads));
+            }
+            return;
+        }
+        // While viewing Leads, keep them marked seen → badge stays 0.
+        if (onLeadsPage && seenLeads !== totalLeads) {
+            setSeenLeads(totalLeads);
+            localStorage.setItem(SEEN_LEADS_KEY, String(totalLeads));
+        }
+    }, [onLeadsPage, totalLeads, seenLeads, loading]);
+
+    const leadsBadge = seenLeads === null ? 0 : Math.max(0, totalLeads - seenLeads);
+
+    const countFor = (name) =>
+        name === "Leads" ? leadsBadge : name === "Alerts" ? inactiveCount : 0;
 
     const displayName = user?.name || "Admin";
     const role = user?.role || "admin";
@@ -85,10 +133,16 @@ const Sidebar = ({ open, onClose, onAddLead }) => {
                             <Icon size={18} className="shrink-0" />
                             <span className="flex-1 truncate">{name}</span>
 
-                            {badge && (
-                                <span className="rounded-md bg-orange-50 px-2 py-0.5 text-[11px] font-semibold text-orange-600">
-                                    {badge}
+                            {countFor(name) > 0 ? (
+                                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[11px] font-bold text-white">
+                                    {countFor(name)}
                                 </span>
+                            ) : (
+                                badge && (
+                                    <span className="rounded-md bg-orange-50 px-2 py-0.5 text-[11px] font-semibold text-orange-600">
+                                        {badge}
+                                    </span>
+                                )
                             )}
                         </NavLink>
                     );
@@ -115,7 +169,7 @@ const Sidebar = ({ open, onClose, onAddLead }) => {
                 {impersonation ? (
                     <button
                         onClick={stopImpersonate}
-                        className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm font-semibold text-amber-700 transition-colors hover:bg-amber-100"
+                        className="flex w-full items-center justify-center gap-2  mb-10 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm font-semibold text-amber-700 transition-colors hover:bg-amber-100"
                     >
                         <ArrowLeft size={16} />
                         Back to Admin CRM

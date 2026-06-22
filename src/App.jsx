@@ -149,6 +149,16 @@ const App = () => {
 
       </Route>
 
+      {/* Lead Manager — standalone lead detail */}
+      <Route
+        path="/LeadManagerDashboard/lead/:id"
+        element={
+          <ProtectedRoute allow={["leadmanager"]}>
+            <LeadDetail />
+          </ProtectedRoute>
+        }
+      />
+
       <Route
         path="/AdminLeadManager/:id"
         element={

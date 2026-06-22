@@ -1,7 +1,10 @@
-import { NavLink } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 import { X, LogOut } from "lucide-react";
 import { menuItems, ADMIN_BASE } from "./menuConfig.js";
 import { useAuth } from "../../context/AuthContext.jsx";
+import { getLeads } from "../../services/LeadServices.js";
+import { getTrash } from "../../api/trash.js";
 
 /**
  * Admin sidebar.
@@ -22,6 +25,68 @@ const Sidebar = ({ open, onClose }) => {
   const initial = displayName.charAt(0).toUpperCase();
 
   const handleLogout = () => logout();
+
+  // Red badges show only NEW items since the section was last opened.
+  // We baseline counts on first load, store "seen" counts per section, and
+  // clear a section's badge when you open it. Refetched on navigation.
+  const SEEN_KEY = "admin_seen_counts";
+  const location = useLocation();
+  const [counts, setCounts] = useState({});
+  const [seen, setSeen] = useState({});
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const [leadRes, trash] = await Promise.all([getLeads(""), getTrash()]);
+      if (!active) return;
+      const leads = leadRes?.data || [];
+      const current = {
+        "Pending Review": leads.filter((l) => l.status === "pending").length,
+        "Conversion Requests": leads.filter((l) => l.status === "conversion_requested").length,
+        "Assigned Leads": leads.filter((l) => l.assigned_to).length,
+        "General Leads": leads.filter((l) => l.lead_manager_id).length,
+        Trash: Array.isArray(trash) ? trash.length : 0,
+      };
+
+      let nextSeen;
+      let raw = null;
+      try {
+        raw = localStorage.getItem(SEEN_KEY);
+      } catch {
+        raw = null;
+      }
+      if (raw === null) {
+        // First load → baseline everything so existing data isn't flagged new.
+        nextSeen = { ...current };
+      } else {
+        try {
+          nextSeen = JSON.parse(raw) || {};
+        } catch {
+          nextSeen = {};
+        }
+        // Mark the currently-open section as seen → clears its badge.
+        const openItem = menuItems.find(
+          (m) => m.path !== ADMIN_BASE && location.pathname.startsWith(m.path)
+        );
+        if (openItem && current[openItem.name] !== undefined) {
+          nextSeen[openItem.name] = current[openItem.name];
+        }
+      }
+      try {
+        localStorage.setItem(SEEN_KEY, JSON.stringify(nextSeen));
+      } catch {
+        /* ignore */
+      }
+      setCounts(current);
+      setSeen(nextSeen);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [location.pathname]);
+
+  // Badge = how many NEW items since this section was last seen.
+  const countFor = (name) => Math.max(0, (counts[name] || 0) - (seen[name] || 0));
 
   return (
     <aside
@@ -67,10 +132,16 @@ const Sidebar = ({ open, onClose }) => {
           >
             <Icon size={18} className="shrink-0" />
             <span className="flex-1 truncate">{name}</span>
-            {badge && (
-              <span className="rounded-md bg-orange-50 px-2 py-0.5 text-[11px] font-semibold text-orange-600">
-                {badge}
+            {countFor(name) > 0 ? (
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[11px] font-bold text-white">
+                {countFor(name)}
               </span>
+            ) : (
+              badge && (
+                <span className="rounded-md bg-orange-50 px-2 py-0.5 text-[11px] font-semibold text-orange-600">
+                  {badge}
+                </span>
+              )
             )}
           </NavLink>
         ))}

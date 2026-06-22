@@ -143,7 +143,8 @@ const LeadDetail = () => {
         setBusy(true);
         const amount = Number(dealAmount);
         const royaltyAmt = Math.round((amount * Number(royalty)) / 100);
-        const commissionAmt = Math.round((amount * SALES_COMMISSION_PCT) / 100);
+        const commissionAmt = commissionAmount(amount, salesMember);
+        const commPct = commissionPct(salesMember);
         const approver = profile?.name || "Admin";
 
         const res = await updateLead(id, {
@@ -158,7 +159,7 @@ const LeadDetail = () => {
         // Log it on the timeline (best-effort — needs the lead_reports table).
         await addReport(id, {
             status: "converted",
-            note: `✅ Conversion approved by ${approver}. Deal: ${inr(amount)}. Partner Royalty: ${royalty}% = ${inr(royaltyAmt)}. Sales Commission: ${SALES_COMMISSION_PCT}% = ${inr(commissionAmt)}${salesName ? ` (${salesName})` : ""}.${adminNotes ? " " + adminNotes : ""}`,
+            note: `✅ Conversion approved by ${approver}. Deal: ${inr(amount)}. Partner Royalty: ${royalty}% = ${inr(royaltyAmt)}. Sales Commission: ${commPct}% = ${inr(commissionAmt)}${salesName ? ` (${salesName})` : ""}.${adminNotes ? " " + adminNotes : ""}`,
         }).catch(() => {});
         setBusy(false);
         setConvertOpen(false);
@@ -562,13 +563,13 @@ const LeadDetail = () => {
                         </div>
                         <div className="flex justify-between">
                             <span className="text-gray-500">Commission Rate</span>
-                            <span className="font-medium text-blue-600">{SALES_COMMISSION_PCT}%</span>
+                            <span className="font-medium text-blue-600">{commissionPct(salesMember)}%</span>
                         </div>
                         {dealAmount && (
                             <div className="mt-1 flex justify-between border-t border-blue-100 pt-1">
                                 <span className="text-gray-500">Commission Amount</span>
                                 <span className="font-medium text-gray-900">
-                                    {inr(Math.round((Number(dealAmount) * SALES_COMMISSION_PCT) / 100))}
+                                    {inr(commissionAmount(dealAmount, salesMember))}
                                 </span>
                             </div>
                         )}

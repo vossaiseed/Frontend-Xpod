@@ -1,4 +1,5 @@
-import { NavLink } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 import {
     LayoutDashboard,
     Users,
@@ -14,6 +15,7 @@ import {
 import { useAuth } from "../../context/AuthContext.jsx";
 
 const BASE = "/SalesmanDashboard";
+const SEEN_ASSIGNED_KEY = "sales_seen_assigned";
 
 const ITEMS = [
     { name: "Dashboard", to: BASE, icon: LayoutDashboard, end: true },
@@ -25,10 +27,37 @@ const ITEMS = [
     { name: "Lead Pool", to: `${BASE}/lead-pool`, icon: Layers, badge: "Claim" },
 ];
 
-const SalesSidebar = ({ open, onClose, member }) => {
+const SalesSidebar = ({ open, onClose, member, leads = [], loading }) => {
     const { logout, impersonation, stopImpersonate } = useAuth();
+    const location = useLocation();
     const displayName = member?.name || "Sales";
     const initial = displayName.charAt(0).toUpperCase();
+
+    // Assigned Leads = notification count: only NEW/unseen leads since the
+    // Assigned Leads page was last opened. Baseline on first load.
+    const totalAssigned = leads.length;
+    const [seenAssigned, setSeenAssigned] = useState(() => {
+        const raw = localStorage.getItem(SEEN_ASSIGNED_KEY);
+        return raw === null ? null : Number(raw) || 0;
+    });
+    const onAssignedPage = location.pathname.toLowerCase().startsWith(`${BASE}/assigned`.toLowerCase());
+
+    useEffect(() => {
+        if (seenAssigned === null) {
+            if (!loading) {
+                setSeenAssigned(totalAssigned);
+                localStorage.setItem(SEEN_ASSIGNED_KEY, String(totalAssigned));
+            }
+            return;
+        }
+        if (onAssignedPage && seenAssigned !== totalAssigned) {
+            setSeenAssigned(totalAssigned);
+            localStorage.setItem(SEEN_ASSIGNED_KEY, String(totalAssigned));
+        }
+    }, [onAssignedPage, totalAssigned, seenAssigned, loading]);
+
+    const assignedBadge = seenAssigned === null ? 0 : Math.max(0, totalAssigned - seenAssigned);
+    const countFor = (name) => (name === "Assigned Leads" ? assignedBadge : 0);
 
     return (
         <aside
@@ -68,10 +97,16 @@ const SalesSidebar = ({ open, onClose, member }) => {
                     >
                         <Icon size={18} className="shrink-0" />
                         <span className="flex-1 truncate">{name}</span>
-                        {badge && (
-                            <span className="rounded-md bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-600">
-                                {badge}
+                        {countFor(name) > 0 ? (
+                            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[11px] font-bold text-white">
+                                {countFor(name)}
                             </span>
+                        ) : (
+                            badge && (
+                                <span className="rounded-md bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-600">
+                                    {badge}
+                                </span>
+                            )
                         )}
                     </NavLink>
                 ))}

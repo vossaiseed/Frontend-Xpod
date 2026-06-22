@@ -62,6 +62,7 @@ const EmptyForm = {
 
   closing_capacity: "other",
   max_lead_capacity: 10,
+  commission_rate: 1,
 
   languages: [],
 
@@ -239,6 +240,7 @@ const SalesMan = () => {
 
       closing_capacity: row.closing_capacity || "other",
       max_lead_capacity: row.max_lead_capacity || 10,
+      commission_rate: row.commission_rate ?? 1,
 
       languages: row.languages || [],
 
@@ -304,6 +306,7 @@ const SalesMan = () => {
 
         closing_capacity: form.closing_capacity,
         max_lead_capacity: form.max_lead_capacity,
+        commission_rate: Number(form.commission_rate) || 0,
 
         languages: form.languages,
         restricted_access: form.restricted_access,
@@ -472,6 +475,16 @@ const SalesMan = () => {
               type="number"
               value={form.max_lead_capacity}
               onChange={handleChange}
+            />
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormField
+              label="Commission %"
+              name="commission_rate"
+              type="number"
+              value={form.commission_rate}
+              onChange={handleChange}
+              placeholder="e.g. 1"
             />
           </div>
           <div className='grid grid-cols-1 gap-4 '>
