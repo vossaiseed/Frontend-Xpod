@@ -1,5 +1,6 @@
 import { Menu } from "lucide-react";
 import { useAuth } from "../../context/AuthContext.jsx";
+import NotificationBell from "./NotificationBell.jsx";
 
 /**
  * Sticky top bar.
@@ -29,6 +30,7 @@ const Topbar = ({ title, onMenuClick }) => {
       </div>
 
       <div className="flex items-center gap-3">
+        <NotificationBell />
         <span className="hidden rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold capitalize text-orange-600 sm:inline-block">
           {role.replace(/_/g, " ")}
         </span>

@@ -6,7 +6,7 @@ import { useAuth } from "../../context/AuthContext.jsx";
  * Route guard (backend-based)
  */
 const ProtectedRoute = ({ allow = [], children }) => {
-  const { token, role, refreshSession } = useAuth();
+  const { token, role, refreshSession, impersonation, exitImpersonation } = useAuth();
   const [status, setStatus] = useState("checking");
 
   useEffect(() => {
@@ -46,7 +46,19 @@ const ProtectedRoute = ({ allow = [], children }) => {
         }
 
         const allowed = allow.length === 0 || allow.includes(role);
-        setStatus(allowed ? "ok" : "denied");
+        if (!allowed) {
+          // Browser Back landed on a route this role can't access. If we're
+          // impersonating (e.g. admin viewing a Sales/LM/Partner dashboard and
+          // pressing Back into an admin route), exit impersonation in place so
+          // the admin route re-renders — instead of bouncing to /login.
+          if (impersonation && exitImpersonation) {
+            exitImpersonation();
+            return; // effect re-runs with the restored admin role
+          }
+          setStatus("denied");
+          return;
+        }
+        setStatus("ok");
       } catch (err) {
         if (active) setStatus("denied");
       }
@@ -57,9 +69,9 @@ const ProtectedRoute = ({ allow = [], children }) => {
     return () => {
       active = false;
     };
-    // refreshSession intentionally excluded — it changes identity each render.
+    // refreshSession/exitImpersonation excluded — they change identity each render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allow, token, role]);
+  }, [allow, token, role, impersonation]);
 
   if (status === "checking") {
     return (

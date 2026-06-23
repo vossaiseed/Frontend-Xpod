@@ -138,6 +138,27 @@ export const AuthProvider = ({ children }) => {
     return { ok: true };
   };
 
+  // Restore the admin session WITHOUT navigating — used when the browser Back
+  // button lands on an admin route mid-impersonation. The current (admin) route
+  // then re-renders as admin instead of bouncing to /login. If the restored
+  // admin access token is stale, ProtectedRoute's refresh fallback renews it.
+  const exitImpersonation = () => {
+    const backup = readJSON("admin_backup");
+    if (backup) {
+      for (const k of ["token", "role", "user", "profile", "session"]) {
+        if (backup[k] == null) localStorage.removeItem(k);
+        else localStorage.setItem(k, backup[k]);
+      }
+    }
+    localStorage.removeItem("admin_backup");
+    localStorage.removeItem("impersonation");
+    setImpersonation(null);
+    setToken(readToken());
+    setRole(localStorage.getItem("role"));
+    setUser(readJSON("user"));
+    setProfile(readJSON("profile"));
+  };
+
   const stopImpersonate = async () => {
     const backup = readJSON("admin_backup");
 
@@ -282,7 +303,7 @@ export const AuthProvider = ({ children }) => {
     <AuthContext.Provider
       value={{
         user, profile, role, token,
-        impersonation, impersonate, stopImpersonate,
+        impersonation, impersonate, stopImpersonate, exitImpersonation,
         login, logout, loadMe, refreshSession,
       }}
     >

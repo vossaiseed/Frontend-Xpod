@@ -57,19 +57,15 @@ export function useLeadDashboardData(leadManagerId = null, refreshKey = 0) {
                 const payload = await res.json();
                 if (!active) return;
 
-                // Map the backend payload onto the component's shape, keeping
-                // EMPTY defaults for anything the backend doesn't provide.
-                const s = payload.stats || {};
+                // Backend now returns the component-ready shape; merge over
+                // EMPTY defaults so any missing field stays safe.
                 setData({
                     ...EMPTY,
-                    stats: {
-                        ...EMPTY.stats,
-                        pendingReview: s.conversionRequests ?? 0,
-                        assignedToday: s.assigned ?? 0,
-                        converted: s.converted ?? 0,
-                        activeStaff: (payload.salesCapacity || []).length,
-                    },
-                    salesStaff: payload.salesCapacity || [],
+                    stats: { ...EMPTY.stats, ...(payload.stats || {}) },
+                    pipeline: { ...EMPTY.pipeline, ...(payload.pipeline || {}) },
+                    recentActivity: payload.recentActivity || [],
+                    inactiveLeads: payload.inactiveLeads || [],
+                    salesStaff: payload.salesStaff || payload.salesCapacity || [],
                 });
             } catch (err) {
                 if (active) setData(EMPTY);
