@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useOutletContext, useNavigate } from "react-router-dom";
 import { Phone, MapPin, Clock, User, Mic, ChevronRight, CalendarClock } from "lucide-react";
-import { getReports } from "../../services/LeadServices.js";
+import { getMyFollowups } from "../../api/sales.js";
 
 const STATUS = {
     new: { label: "New", badge: "bg-blue-50 text-blue-600" },
@@ -31,21 +31,19 @@ const SalesFollowups = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        let active = true;
         (async () => {
             setLoading(true);
-            const leads = data?.leads || [];
-            // Keep only leads that have a scheduled follow-up date (from reports).
-            const enriched = await Promise.all(
-                leads.map(async (l) => {
-                    const reps = await getReports(l.id).catch(() => []);
-                    const withDate = (Array.isArray(reps) ? reps : []).find((r) => r.next_followup);
-                    return withDate ? { ...l, followup: withDate.next_followup } : null;
-                })
-            );
-            setRows(enriched.filter(Boolean));
+            // Server resolves which leads have a follow-up date in one request.
+            const res = await getMyFollowups().catch(() => ({ leads: [] }));
+            if (!active) return;
+            setRows(Array.isArray(res?.leads) ? res.leads : []);
             setLoading(false);
         })();
-    }, [data]);
+        return () => {
+            active = false;
+        };
+    }, []);
 
     return (
         <div className="space-y-5">

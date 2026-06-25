@@ -38,6 +38,16 @@ export const getLeads = async (query = "") => {
   return res.json();
 };
 
+// Lightweight badge counts for the admin sidebar (no lead rows transferred).
+// Returns { pending, conversionRequested, assigned, general, trash }.
+export const getLeadCounts = async () => {
+  const res = await fetch(`${API}/api/leads/counts`, {
+    method: "GET",
+    headers: authHeaders(),
+  });
+  return res.ok ? res.json() : {};
+};
+
 // Lifecycle action, e.g. leadAction(id, "approve-review") / "reject-review"
 export const leadAction = async (id, action, body) => {
   const res = await fetch(`${API}/api/leads/${id}/${action}`, {

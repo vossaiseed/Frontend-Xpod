@@ -12,7 +12,9 @@ import {
   UserPlus,
   Briefcase,
   Layers,
+  GalleryHorizontal,
 } from "lucide-react";
+import { PiCube } from "react-icons/pi";
 
 export const ADMIN_BASE = "/AdminCRM";
 
@@ -25,6 +27,8 @@ export const menuItems = [
   { name: "Lead Managers", path: `${ADMIN_BASE}/lead-managers`, icon: UserCog },
   { name: "Sales Team", path: `${ADMIN_BASE}/sales-team`, icon: Briefcase },
   { name: "General Leads", path: `${ADMIN_BASE}/general-leads`, icon: ClipboardList },
+  { name: "Gallery Management", path: `${ADMIN_BASE}/gallery-management`, icon: GalleryHorizontal },
+  { name: "Product Settings", path: `${ADMIN_BASE}/product-settings`, icon: PiCube },
   { name: "Trash", path: `${ADMIN_BASE}/trash`, icon: Trash2 },
   { name: "Settings", path: `${ADMIN_BASE}/settings`, icon: Settings },
   { name: "Lead Pool", path: `${ADMIN_BASE}/lead-pool`, icon: Layers, badge: "View" },

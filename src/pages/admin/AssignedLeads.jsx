@@ -13,11 +13,10 @@ const FILTERS = [
 const AssignedLeads = () => (
     <LeadBoard
         title="Assigned Leads"
-        subtitle="All leads in the system."
-        query=""
+        subtitle="Leads currently assigned to a sales person."
+        query="?assigned=true"
         filters={FILTERS}
-        emptyText="No leads yet."
-        
+        emptyText="No leads have been assigned yet."
     />
 );
 

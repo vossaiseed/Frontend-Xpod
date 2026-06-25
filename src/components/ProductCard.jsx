@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import product1 from "../assets/images/product-1.png";
-import product2 from "../assets/images/product-2.png";
-import product3 from "../assets/images/product-3.png";
+import product1 from "../assets/images/product-1.webp";
+import product2 from "../assets/images/product-2.webp";
+import product3 from "../assets/images/product-3.webp";
 import DownloadSection from "./DownloadSection";
 
 const ProductCard = () => {
@@ -49,7 +49,7 @@ const ProductCard = () => {
             {/* X7 */}
             <div className="grid grid-cols-[85px_1fr_80px] items-center gap-2">
               <div className="flex items-center gap-2">
-                <img src={product1} className="w-14 object-contain" />
+                <img src={product1} loading="lazy" className="w-14 object-contain" />
               </div>
 
               <div>
@@ -85,7 +85,7 @@ const ProductCard = () => {
             {/* X6 */}
             <div className="grid grid-cols-[85px_1fr_80px] items-center gap-2">
               <div className="flex items-center gap-2">
-                <img src={product2} className="w-14 object-contain" />
+                <img src={product2} loading="lazy" className="w-14 object-contain" />
               </div>
 
               <div>
@@ -124,7 +124,7 @@ const ProductCard = () => {
             {/* X5 */}
             <div className="grid grid-cols-[85px_1fr_80px] items-center gap-2">
               <div className="flex items-center gap-2">
-                <img src={product3} className="w-14 object-contain" />
+                <img src={product3} loading="lazy" className="w-14 object-contain" />
               </div>
 
               <div>
@@ -185,7 +185,7 @@ const ProductCard = () => {
               <h2 className="text-2xl font-bold">X7</h2>
             </div>
 
-            <img src={product1} className="mb-12 w-full object-contain" />
+            <img src={product1} loading="lazy" className="mb-12 w-full object-contain" />
 
             <label className="mb-2 block text-sm font-semibold uppercase text-[#6d7481]">
               Select Range
@@ -226,7 +226,7 @@ const ProductCard = () => {
               <h2 className="text-2xl font-bold">X6</h2>
             </div>
 
-            <img src={product2} className="mb-9 w-full object-contain" />
+            <img src={product2} loading="lazy" className="mb-9 w-full object-contain" />
 
             <label className="mb-2 block text-sm font-semibold uppercase text-[#6d7481]">
               Select Range
@@ -270,7 +270,7 @@ const ProductCard = () => {
               <h2 className="text-2xl font-bold">X5</h2>
             </div>
 
-            <img src={product3} className="mb-12 w-full object-contain" />
+            <img src={product3} loading="lazy" className="mb-12 w-full object-contain" />
 
             <label className="mb-2 block text-sm font-semibold uppercase text-[#6d7481]">
               Select Range

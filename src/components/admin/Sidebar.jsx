@@ -3,8 +3,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { X, LogOut } from "lucide-react";
 import { menuItems, ADMIN_BASE } from "./menuConfig.js";
 import { useAuth } from "../../context/AuthContext.jsx";
-import { getLeads } from "../../services/LeadServices.js";
-import { getTrash } from "../../api/trash.js";
+import { getLeadCounts } from "../../services/LeadServices.js";
 
 /**
  * Admin sidebar.
@@ -37,15 +36,14 @@ const Sidebar = ({ open, onClose }) => {
   useEffect(() => {
     let active = true;
     (async () => {
-      const [leadRes, trash] = await Promise.all([getLeads(""), getTrash()]);
+      const c = await getLeadCounts();
       if (!active) return;
-      const leads = leadRes?.data || [];
       const current = {
-        "Pending Review": leads.filter((l) => l.status === "pending").length,
-        "Conversion Requests": leads.filter((l) => l.status === "conversion_requested").length,
-        "Assigned Leads": leads.filter((l) => l.assigned_to).length,
-        "General Leads": leads.filter((l) => l.lead_manager_id).length,
-        Trash: Array.isArray(trash) ? trash.length : 0,
+        "Pending Review": c.pending || 0,
+        "Conversion Requests": c.conversionRequested || 0,
+        "Assigned Leads": c.assigned || 0,
+        "General Leads": c.general || 0,
+        Trash: c.trash || 0,
       };
 
       let nextSeen;
@@ -115,7 +113,7 @@ const Sidebar = ({ open, onClose }) => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+      <nav className="flex-1 overflow-y-auto px-3 py-2">
         {menuItems.map(({ name, path, icon: Icon, badge }) => (
           <NavLink
             key={path}
@@ -149,7 +147,7 @@ const Sidebar = ({ open, onClose }) => {
 
       {/* Footer: logged-in user + logout */}
       <div className="border-t border-gray-200 p-3">
-        <div className="mb-3 flex items-center gap-3 rounded-xl bg-gray-50 px-3 py-2.5">
+        <div className="mb-3 flex items-center gap-3 rounded-xl bg-gray-50 px-3 py-">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-purple-100 font-bold text-purple-700">
             {initial}
           </div>

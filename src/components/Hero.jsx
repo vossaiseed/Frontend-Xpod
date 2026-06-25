@@ -1,6 +1,6 @@
 import React from 'react'
 import Navbar from './Navbar'
-import heroImage from '../assets/images/hero-image.png'
+import heroImage from '../assets/images/hero-image.webp'
 
 const Hero = () => {
     return (

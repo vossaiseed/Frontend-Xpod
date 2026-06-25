@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import logo from "../assets/images/xpod-logo.png";
-import logo2 from "../assets/images/logo2.png";
+import logo from "../assets/images/xpod-logo.webp";
+import logo2 from "../assets/images/logo2.webp";
 import { PiLineVertical } from "react-icons/pi";
 
 const Navbar = () => {

@@ -20,6 +20,9 @@ const ArchiveTrashDialog = ({
     typeLabel = "Record",
     note,
     busy = false,
+    // Optional overrides so the same dialog can read e.g. "Deactivate Account".
+    heading,
+    archiveLabel,
 }) => {
     useEffect(() => {
         if (!open) return;
@@ -40,7 +43,7 @@ const ArchiveTrashDialog = ({
                 </div>
 
                 <h3 className="mt-4 text-lg font-bold text-gray-900">
-                    Archive or Delete {typeLabel}?
+                    {heading || `Archive or Delete ${typeLabel}?`}
                 </h3>
                 <p className="mt-1 text-sm text-gray-500">
                     ⚠️ <span className="font-medium text-gray-700">{name}</span>{" "}
@@ -54,7 +57,7 @@ const ArchiveTrashDialog = ({
                             disabled={busy}
                             className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-600 py-3 text-sm font-semibold text-white hover:bg-orange-700 disabled:opacity-60"
                         >
-                            <Archive size={16} /> Archive {typeLabel}
+                            <Archive size={16} /> {archiveLabel || `Archive ${typeLabel}`}
                         </button>
                     )}
                     <button

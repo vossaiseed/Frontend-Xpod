@@ -19,3 +19,15 @@ export const getMine = async () => {
   if (!res.ok) throw new Error(body.message || "Failed to load");
   return body;
 };
+
+/**
+ * The salesman's leads that have a scheduled follow-up date — resolved server
+ * side in one request (replaces a per-lead /reports fan-out).
+ * Returns { member: { name }, leads: [{ ...lead, followup }] }.
+ */
+export const getMyFollowups = async () => {
+  const res = await fetch(`${API}/api/sales-team/me/followups`, {
+    headers: { Authorization: `Bearer ${getToken()}` },
+  });
+  return res.ok ? res.json() : { member: null, leads: [] };
+};

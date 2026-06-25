@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react'
-import { Delete, Edit, Eye, EyeOff, FileType, ImageIcon, LocateIcon, Lock, Mail, Pencil, Upload, UserPlus, View } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react'
+import { Delete, Edit, Eye, EyeOff, FileType, ImageIcon, LocateIcon, Lock, Mail, Pencil, Power, Upload, UserPlus, View } from 'lucide-react';
 
 import { useCrud } from '../../hooks/useCrud';
 import { createResource } from '../../api/resource';
+import { getSalesTeamStats } from '../../api/lookups';
 import { useAuth } from '../../context/AuthContext';
 
 import Modal from '../../components/admin/Modal';
@@ -12,7 +13,6 @@ import ArchiveTrashDialog from '../../components/admin/ArchiveTrashDialog';
 import LanguageSelector from '../../components/admin/LanguageSelector';
 import LeadPermissionSelector from '../../components/admin/LeadPermissionSelector';
 import PhotoUpload from '../../components/admin/PhotoUpload';
-import ConfirmDialog from "../../components/admin/ConfirmDialog";
 
 
 
@@ -94,6 +94,7 @@ const ActionButton = ({
     gray: "border-gray-200 text-gray-600 hover:bg-gray-50",
     blue: "border-blue-200 text-blue-600 hover:bg-blue-50",
     red: "border-red-200 text-red-600 hover:bg-red-50",
+    green: "border-green-200 text-green-600 hover:bg-green-50",
   };
 
   return (
@@ -107,12 +108,13 @@ const ActionButton = ({
     </button>
   );
 };
-const SalesManCard = ({ salesman, onEdit, onView, onResetPwd, onDelete }) => {
+const SalesManCard = ({ salesman, stats, onEdit, onView, onResetPwd, onDelete, onReactivate }) => {
   const photo = salesman.photo_url || salesman.avatar_url
   const initial = (salesman.name?.charAt(0) || '?').toUpperCase()
   const [showPwd, setShowPwd] = useState(false)
-  const [leads, setLeads] = useState('')
-  const [converted, setConverted] = useState('')
+  const leads = stats?.assigned ?? 0
+  const converted = stats?.converted ?? 0
+  const isInactive = salesman.active === false
 
   return (
     <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm hover:shadow-md">
@@ -132,8 +134,13 @@ const SalesManCard = ({ salesman, onEdit, onView, onResetPwd, onDelete }) => {
           )}
 
           <div className="min-w-0">
-            <h3 className="truncate text-lg font-semibold text-gray-900">
+            <h3 className="flex items-center gap-2 truncate text-lg font-semibold text-gray-900">
               {salesman.name}
+              {isInactive && (
+                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-gray-500">
+                  Inactive
+                </span>
+              )}
             </h3>
 
             {salesman.phone && (
@@ -155,11 +162,11 @@ const SalesManCard = ({ salesman, onEdit, onView, onResetPwd, onDelete }) => {
             )} */}
             <div className='flex gap-3 my-1'>
               <div className='flex gap-2 text-xs'>
-                <p>0</p>
+                <p>{leads}</p>
                 <p>Leads</p>
               </div>
               <div className='flex gap-2 text-xs text-green-400'>
-                <p>0</p>
+                <p>{converted}</p>
                 <p>Converted</p>
               </div>
             </div>
@@ -191,7 +198,11 @@ const SalesManCard = ({ salesman, onEdit, onView, onResetPwd, onDelete }) => {
           <ActionButton icon={Pencil} label="Edit" tone="gray" onClick={() => onEdit(salesman)} />
           <ActionButton icon={Eye} label="View" tone="blue" onClick={() => onView(salesman)} />
           <ActionButton icon={Lock} label="Reset Pwd" tone="blue" onClick={() => onResetPwd(salesman)} />
-          <ActionButton icon={Delete} label="Delete" tone="red" onClick={() => onDelete(salesman)} />
+          {isInactive ? (
+            <ActionButton icon={Power} label="Reactivate" tone="green" onClick={() => onReactivate(salesman)} />
+          ) : (
+            <ActionButton icon={Delete} label="Delete" tone="red" onClick={() => onDelete(salesman)} />
+          )}
         </div>
       </div>
 
@@ -206,6 +217,20 @@ const SalesMan = () => {
   const resource = useMemo(() => createResource("sales-team"), []);
   const { rows, loading, error, create, update, remove, action } = useCrud(resource);
   const { impersonate } = useAuth();
+
+  // Real per-salesperson lead counts (assigned / converted) from the stats
+  // endpoint. Refetched whenever `rows` change — i.e. after add/edit/delete/
+  // archive, which useCrud reloads — so the numbers stay accurate.
+  const [statsById, setStatsById] = useState({})
+  useEffect(() => {
+    let active = true
+    getSalesTeamStats()
+      .then((list) => {
+        if (active) setStatsById(Object.fromEntries((list || []).map((m) => [m.id, m])))
+      })
+      .catch(() => { })
+    return () => { active = false }
+  }, [rows])
   const [formOpen, setFormOpen] = useState('')
   const [editing, setEditing] = useState('')
   const [form, setForm] = useState(EmptyForm)
@@ -356,13 +381,20 @@ const SalesMan = () => {
     }
   }
 
-  const handleArchive = async () => {
+  // Deactivate (from the delete dialog): disables the account + blocks login,
+  // keeps the row in the list marked Inactive. Reversible via Reactivate.
+  const handleDeactivate = async () => {
     if (!toDelete) return
     setDeleting(true)
-    const res = await action(toDelete.id, "archive")
+    const res = await action(toDelete.id, "deactivate")
     setDeleting(false)
     if (!res?.error) setToDelete(null)
-    else alert(res.error.message || "Archive failed")
+    else alert(res.error.message || "Deactivate failed")
+  }
+
+  const handleReactivate = async (salesman) => {
+    const res = await action(salesman.id, "reactivate")
+    if (res?.error) alert(res.error.message || "Reactivate failed")
   }
 
   const handleResetPwd = async (salesman) => {
@@ -411,10 +443,12 @@ const SalesMan = () => {
           {rows.map((salesman) => (
             <SalesManCard key={salesman.id}
               salesman={salesman}
+              stats={statsById[salesman.id]}
               onEdit={openEdit}
               onView={handleView}
               onResetPwd={handleResetPwd}
               onDelete={setToDelete}
+              onReactivate={handleReactivate}
             />
           ))}
         </div>
@@ -574,14 +608,17 @@ const SalesMan = () => {
         )}
       </Modal>
 
-      <ConfirmDialog
+      <ArchiveTrashDialog
         open={!!toDelete}
         onCancel={() => setToDelete(null)}
-        onConfirm={handleDelete}
-        loading={deleting}
-        title="Move sales person to Trash"
-        confirmLabel="Move to Trash"
-        message={`Move "${toDelete?.name}" to Trash? You can restore it within 30 days.`}
+        onArchive={handleDeactivate}
+        onTrash={handleDelete}
+        name={toDelete?.name}
+        typeLabel="Sales Person"
+        heading="Deactivate or Delete Sales Person?"
+        archiveLabel="Deactivate Account"
+        note="Deactivate to block their login and mark them Inactive (reversible), or Trash to restore within 30 days."
+        busy={deleting}
       />
     </div>
   )
